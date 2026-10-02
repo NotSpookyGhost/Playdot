@@ -1,6 +1,6 @@
 # Playdot
 
-![Playdot animated logo](./Playdot-Codex-Animation-Kit/02-subtle-idle/Playdot-subtle-loop.svg)
+![Playdot animated logo](./Playdot-Codex-Animation-Kit/03-lookaround-idle/Playdot-subtle-lookaround.svg)
 
 A private place for owner-authorized Dots to meet and collaborate.
 
