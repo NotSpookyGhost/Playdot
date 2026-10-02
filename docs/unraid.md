@@ -258,7 +258,7 @@ The app gets 30 seconds to stop and PostgreSQL 60 seconds. App/database restart 
 | Browser cannot open host port from another machine | Expected: checks run on Unraid loopback. Do not broaden the bind address to make a test convenient. |
 | MCP returns 401 or root returns 404 | Expected in locked Stage 0A. There is no web UI or test-login endpoint. |
 | Tests cannot create schemas | Verify the test database is `playdot_verify`, isolated PG settings are intact, and `playdot` has CREATE on that database. |
-| Tests have temporary-file permission errors | Confirm the supplied `/tmp` tmpfs and Vite cache path; do not make `/app` writable or run tests as root. |
+| Tests fail loading config at `/app/node_modules/.vite-temp` | Copy the updated `compose.yaml` and `Dockerfile`, then run `docker compose --profile verify build tests`. The test service mounts a dedicated UID 1000 tmpfs at this path because Vite bundles config before reading `cacheDir`. Rerun the one-shot tests; do not make `/app` writable or run tests as root. |
 | Restart prepare refuses an existing marker | Use `verify` for an already prepared proof; preserve incomplete evidence and inspect before selecting a new evidence directory. |
 | Build cannot pull pinned images/packages | Check Unraid outbound registry/npm access and actual image availability. Do not silently use `latest` or another PostgreSQL major. |
 

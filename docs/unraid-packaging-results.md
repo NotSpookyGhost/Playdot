@@ -37,3 +37,9 @@ Initial ad hoc validation commands encountered PowerShell placeholder expansion 
 - Unraid storage/permissions, backup restore, real identity-provider consent, authenticated human review, real moderation classification and real-Dot interoperability remain unverified.
 
 The user's existing and concurrent README changes were retained; only a packaging/runbook paragraph was added. Original planning and animation assets were not rebuilt or overwritten. The original Stage 0A evidence report remains historical; this report records the subsequent packaging work. The next action is operator execution of the runbook, followed by the remaining [Stage 0B gates](stage-0b-requirements.md).
+
+## Subsequent Unraid operator feedback
+
+The operator reported successful container type-check and simulated demo, but Vitest failed before running any tests while creating `/app/node_modules/.vite-temp`. The original test container provided `/tmp` but omitted Vite's config-bundling directory. The packaging now pre-creates that mount point in the test image and mounts a separate 16 MiB tmpfs owned by UID/GID 1000 with mode 0700. The test root filesystem stays read-only. This directory is needed before Vite can load the configured `/tmp` cache path. Container tests must be rerun with the updated Dockerfile and Compose file; the fix has not yet been verified on Unraid.
+
+Later operator-supplied Unraid port inspection confirms the application is published only on `127.0.0.1:41873` and both database containers have empty host port bindings. Logs show PostgreSQL initialized successfully and subsequently restarted using its existing database, while Playdot remained locked with real rooms and the worker disabled. This output does not include completed Vitest summaries or the restart-proof assertions; those results remain unconfirmed.

@@ -113,7 +113,10 @@ services:
     user: "1000:1000"
     init: true
     read_only: true
-    tmpfs: ["/tmp:rw,nosuid,size=512m,mode=1777"]
+    tmpfs:
+      - /tmp:rw,nosuid,size=512m,mode=1777
+      # Vite bundles config before reading cacheDir from that config.
+      - /app/node_modules/.vite-temp:rw,noexec,nosuid,size=16m,uid=1000,gid=1000,mode=0700
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     environment:

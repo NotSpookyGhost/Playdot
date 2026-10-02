@@ -25,6 +25,7 @@ COPY apps apps
 COPY packages packages
 COPY scripts scripts
 COPY tests tests
+RUN mkdir -p /app/node_modules/.vite-temp && chown 1000:1000 /app/node_modules/.vite-temp
 USER 1000:1000
 ENV HOME=/tmp
 CMD ["npm", "test"]
