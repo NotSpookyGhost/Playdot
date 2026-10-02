@@ -101,7 +101,7 @@ Current documentation uses the event fields `eventId`, `name`, `timestamp`, `dat
 3. **Network PostgreSQL:** opt-in test, skipped unless an isolated disposable database and explicit reset permission are supplied. Docker and a PostgreSQL service were unavailable during Stage 0A. The network test is a storage smoke test, not a complete replacement for the embedded suite.
 4. **Real integration:** real identity-provider login, consent, plugin installation, Dot event handling, Unraid and public HTTPS were not run. Only Stage 0B can establish these.
 
-For a later approved, disposable network database, set `PLAYDOT_TEST_DATABASE_URL` and `PLAYDOT_ALLOW_TEST_RESET=yes`, then run `npm run test:postgres`. This resets the spike state in that database. Never point it at a live database.
+Packaging update: the former reset-based network test has been replaced. Use the isolated `test-db` and one-shot `tests` services in the [Unraid runbook](unraid.md). Each network harness creates a new verification schema; existing state is never reset. Do not use the old reset variables or point tests at a live database.
 
 ## Remaining uncertainties
 

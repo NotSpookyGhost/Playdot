@@ -1,0 +1,150 @@
+name: playdot
+
+x-app: &app
+  image: playdot-stage0a:local
+  build:
+    context: .
+    target: runtime
+    args:
+      NODE_IMAGE: ${NODE_IMAGE:-node:24.21.0-bookworm-slim}
+  user: "1000:1000"
+  init: true
+  read_only: true
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=64m,mode=1777"]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  secrets: [app_db_password]
+  environment: &app-env
+    PGHOST: db
+    PGDATABASE: playdot
+    PGUSER: playdot
+    PGPASSWORD_FILE: /run/secrets/app_db_password
+    HOST: 0.0.0.0
+    PLAYDOT_MODE: locked
+    PLAYDOT_ENABLE_REAL_ROOMS: "no"
+    MCP_RESOURCE: https://playdot.bytedev.app/mcp
+  networks: [database]
+  logging: &logging
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+x-db: &db
+  image: playdot-postgres:local
+  build:
+    context: .
+    dockerfile: infra/postgres/Dockerfile
+    args:
+      POSTGRES_IMAGE: ${POSTGRES_IMAGE:-postgres:17.11-bookworm}
+  user: "999:999"
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    - /var/run/postgresql:rw,noexec,nosuid,size=16m,uid=999,gid=999,mode=0770
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  secrets: [postgres_password, app_db_password]
+  environment: &db-env
+    POSTGRES_USER: postgres
+    POSTGRES_DB: playdot
+    POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=trust
+    PGDATA: /var/lib/postgresql/data/pgdata
+  healthcheck:
+    test: [CMD-SHELL, 'pg_isready -U postgres -d "$${POSTGRES_DB}"']
+    interval: 5s
+    timeout: 3s
+    retries: 20
+    start_period: 30s
+  restart: unless-stopped
+  stop_grace_period: 60s
+  logging: *logging
+
+services:
+  db:
+    <<: *db
+    networks: [database]
+    volumes:
+      - type: bind
+        source: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/postgres
+        target: /var/lib/postgresql/data
+        bind: {create_host_path: false}
+
+  playdot:
+    <<: *app
+    depends_on:
+      db: {condition: service_healthy, restart: true}
+    # Deliberately fixed loopback binding. No public bind option in Stage 0A.
+    ports: ["127.0.0.1:${PLAYDOT_PORT:-41873}:3000/tcp"]
+    networks: [database, ingress]
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+  migrate:
+    <<: *app
+    profiles: [tools]
+    depends_on:
+      db: {condition: service_healthy}
+    command: [node, dist/scripts/migrate.js]
+    healthcheck: {disable: true}
+    restart: "no"
+
+  # Verification has a distinct cluster, network and persistent path. No ports.
+  test-db:
+    <<: *db
+    profiles: [verify]
+    environment:
+      <<: *db-env
+      POSTGRES_DB: playdot_verify
+    networks: [verification]
+    volumes:
+      - type: bind
+        source: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/verification-postgres
+        target: /var/lib/postgresql/data
+        bind: {create_host_path: false}
+
+  tests:
+    image: playdot-tests:local
+    build:
+      context: .
+      target: test
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:24.21.0-bookworm-slim}
+    profiles: [verify]
+    user: "1000:1000"
+    init: true
+    read_only: true
+    tmpfs: ["/tmp:rw,nosuid,size=512m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      HOME: /tmp
+      PGHOST: test-db
+      PGDATABASE: playdot_verify
+      PGUSER: playdot
+      PGPASSWORD_FILE: /run/secrets/app_db_password
+      PLAYDOT_VERIFY_ONLY: "yes"
+      PLAYDOT_TEST_NETWORK: "yes"
+      PLAYDOT_EVIDENCE_DIR: /evidence
+    secrets: [app_db_password]
+    networks: [verification]
+    depends_on:
+      test-db: {condition: service_healthy}
+    volumes:
+      - type: bind
+        source: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/verification-evidence
+        target: /evidence
+        bind: {create_host_path: false}
+    restart: "no"
+    logging: *logging
+
+networks:
+  database: {internal: true}
+  verification: {internal: true}
+  # No cloudflared service or external attachment is enabled by this file.
+  ingress: {}
+
+secrets:
+  postgres_password:
+    file: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/secrets/postgres_password
+  app_db_password:
+    file: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/secrets/app_db_password

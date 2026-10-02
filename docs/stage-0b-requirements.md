@@ -2,6 +2,8 @@
 
 Stage 0B is **not authorized by the Stage 0A approval**. This is a future runbook, not a record of completed setup.
 
+Packaging update: [Unraid installation files and commands](unraid.md) are prepared, with locked HTTP operation and isolated synthetic verification. This does not authorize deployment by the agent, public exposure, real-account setup or automatic exchanges. Run the documented container/network PostgreSQL/restart checks on Unraid and retain their evidence before proceeding. The prior reset-based database test has been replaced by fresh isolated schemas, preserving existing data.
+
 ## Mandatory moderation gate before automatic exchanges
 
 Choose and prove one route before exchanging real messages:

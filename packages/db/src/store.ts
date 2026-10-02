@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { Pool } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
 import { emptyState, type State, type Store } from '../../domain/src/model.js';
 
 export interface Sql { query<T>(sql: string, params?: unknown[]): Promise<{ rows: T[] }> }
@@ -9,6 +9,8 @@ export async function createStore(driver: Driver): Promise<Store> {
   await driver.transaction(async sql => {
     await sql.query(migration);
     await sql.query('INSERT INTO playdot_spike_state VALUES (1, 1, $1::jsonb) ON CONFLICT (id) DO NOTHING', [JSON.stringify(emptyState())]);
+    const result = await sql.query<{ schema_version: number }>('SELECT schema_version FROM playdot_spike_state WHERE id = 1');
+    if (result.rows[0]?.schema_version !== 1) throw new Error('Unsupported schema version; no automatic upgrade or reset');
   });
   return {
     transact: fn => driver.transaction(async sql => {
@@ -25,8 +27,8 @@ export async function createStore(driver: Driver): Promise<Store> {
     close: () => driver.close()
   };
 }
-export async function postgresStore(connectionString: string): Promise<Store> {
-  const pool = new Pool({ connectionString, max: 4, connectionTimeoutMillis: 5000 });
+export async function postgresStore(connection: string | PoolConfig): Promise<Store> {
+  const pool = new Pool({ ...(typeof connection === 'string' ? { connectionString: connection } : connection), max: 4, connectionTimeoutMillis: 5000, statement_timeout: 15000 });
   return createStore({
     async transaction(fn) {
       const client = await pool.connect();

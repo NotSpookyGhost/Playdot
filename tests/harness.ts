@@ -10,12 +10,15 @@ import { fixtureClient, fixtureIssuer, fixtureResource, localControls } from '..
 import { scopes } from '../packages/contracts/src/index.js';
 import { MockModeration } from './mock-moderation.js';
 import type { ModerationAdapter } from '../packages/domain/src/moderation.js';
+import { networkStore } from './network-store.js';
 
 export const fixtureSecret = `whsec_${Buffer.alloc(32, 7).toString('base64')}`;
 // This known-public signing fixture is accepted ONLY by the injected test receiver.
 export async function harness(options: { moderator?: ModerationAdapter } = {}) {
-  const db = new PGlite();
-  const store = await createStore({ transaction: fn => db.transaction(sql => fn(sql)), close: () => db.close() });
+  const store = process.env.PLAYDOT_TEST_NETWORK === 'yes' ? await networkStore() : await (async () => {
+    const db = new PGlite();
+    return createStore({ transaction: fn => db.transaction(sql => fn(sql)), close: () => db.close() });
+  })();
   let time = Date.now(); const now = () => time;
   const secrets = secretBox(Buffer.alloc(32, 11));
   const controls = localControls(store, now, secrets); await controls.seed();

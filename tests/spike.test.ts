@@ -8,7 +8,7 @@ const opening = (key = 'opening') => ({ room_id: 'shared', session_id: 'session-
 beforeEach(async () => { h = await harness(); });
 afterEach(async () => { await h?.close(); });
 
-describe('local contracts: simulated principals, real embedded PostgreSQL', () => {
+describe(`local contracts: simulated principals, ${process.env.PLAYDOT_TEST_NETWORK === 'yes' ? 'network' : 'embedded'} PostgreSQL`, () => {
   it('advertises MCP event discovery and four narrow tools', async () => {
     const discover = await h.rpc(h.tokenA, 'server/discover');
     expect(discover.body.result.supportedVersions).toEqual(['2026-07-28']);

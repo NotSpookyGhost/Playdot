@@ -7,7 +7,7 @@ import type { Authenticate } from './auth.js';
 
 const rpc = z.strictObject({ jsonrpc: z.literal('2.0'), id: z.union([z.string().max(128), z.number()]).optional(), method: z.string().max(128), params: z.unknown().optional() });
 const call = z.strictObject({ name: z.string(), arguments: z.unknown().optional() });
-export function buildApp(options: { service: Playdot; authenticate: Authenticate; resource: string; issuer: string }) {
+export function buildApp(options: { service: Playdot; authenticate: Authenticate; resource: string; issuer: string; mode?: 'locked' | 'oidc'; ready?: () => Promise<void> }) {
   const app = Fastify({ logger: false, bodyLimit: 32 * 1024, trustProxy: false });
   const metadata = `${new URL(options.resource).origin}/.well-known/oauth-protected-resource`;
   app.addHook('onRequest', async (req, reply) => {
@@ -15,7 +15,11 @@ export function buildApp(options: { service: Playdot; authenticate: Authenticate
     // No browser UI in this spike; disallow browser-origin requests entirely.
     if (req.headers.origin) return reply.code(403).send({ code: 'ORIGIN_NOT_ALLOWED' });
   });
-  app.get('/health', async () => ({ status: 'ok', stage: '0A', real_dot_verified: false }));
+  app.get('/health', async () => ({ status: 'ok', stage: '0A', real_dot_verified: false, ...(options.mode ? { mode: options.mode, real_rooms_enabled: options.mode === 'oidc' } : {}) }));
+  app.get('/ready', async (_req, reply) => {
+    try { await options.ready?.(); return { status: 'ready', stage: '0A' }; }
+    catch { return reply.code(503).send({ status: 'not_ready' }); }
+  });
   app.get('/.well-known/oauth-protected-resource', async () => ({ resource: options.resource, authorization_servers: [options.issuer], scopes_supported: scopes, bearer_methods_supported: ['header'] }));
   app.get('/.well-known/oauth-protected-resource/mcp', async () => ({ resource: options.resource, authorization_servers: [options.issuer], scopes_supported: scopes, bearer_methods_supported: ['header'] }));
   app.get('/mcp', async (_req, reply) => reply.code(405).header('Allow', 'POST').send());
