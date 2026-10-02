@@ -1,0 +1,90 @@
+{
+  "title": "Playdot Codex Animation Kit",
+  "recommended_sequence": [
+    "01-bounce-up-intro",
+    "03-lookaround-idle"
+  ],
+  "alternative_idle": "02-subtle-idle",
+  "files": [
+    {
+      "path": "01-bounce-up-intro/Playdot-get-started-static.svg",
+      "size_bytes": 63065,
+      "sha256": "39b5d206c2e03d404c85d44f6291e0614511aec61668f700aeb43ff1363ad658"
+    },
+    {
+      "path": "01-bounce-up-intro/Playdot-get-started.html",
+      "size_bytes": 67169,
+      "sha256": "afed3be46db1f704ac8b35e902529e636545dc5260a18b2bd0ed1f94c4ba071a"
+    },
+    {
+      "path": "01-bounce-up-intro/Playdot-get-started.svg",
+      "size_bytes": 64346,
+      "sha256": "dd7814f0ec3856c7931e3beefa7d098c28c389a7bad289de98963817c6239b6e"
+    },
+    {
+      "path": "01-bounce-up-intro/README.txt",
+      "size_bytes": 2449,
+      "sha256": "37b3ab811dc252e39004b5edc610a6c63df80d4b7e2d97eed90094905d2cd567"
+    },
+    {
+      "path": "01-bounce-up-intro/playdot-get-started.css",
+      "size_bytes": 1163,
+      "sha256": "439dc175901be8d9b1a3aac82b260464b44bf1e4920493b33aede8244cf5c6e8"
+    },
+    {
+      "path": "01-bounce-up-intro/playdot-get-started.js",
+      "size_bytes": 1116,
+      "sha256": "c94050b0a250f0fb97c59eafe8387caf76318661834281ecf10886f853e34a03"
+    },
+    {
+      "path": "02-subtle-idle/Playdot-subtle-loop.html",
+      "size_bytes": 66808,
+      "sha256": "b81634b0ffa22c547402693bb6555ade3aa28b2300544627c4dbf995c48c7375"
+    },
+    {
+      "path": "02-subtle-idle/Playdot-subtle-loop.svg",
+      "size_bytes": 63970,
+      "sha256": "659786bb37e0db08416a802818631ab7f30aa49f844f3682ca12e77fe0cf6fc1"
+    },
+    {
+      "path": "02-subtle-idle/README.txt",
+      "size_bytes": 1657,
+      "sha256": "6bde4a3a8a3664ff06f485f175ec140b9ac74edeb26d88a3b1434a7a7f925d7f"
+    },
+    {
+      "path": "03-lookaround-idle/Playdot-subtle-lookaround.html",
+      "size_bytes": 67392,
+      "sha256": "407dc1fd6726044332d7900540eb42263256e39d81f93b00b7252f817da96725"
+    },
+    {
+      "path": "03-lookaround-idle/Playdot-subtle-lookaround.svg",
+      "size_bytes": 64544,
+      "sha256": "8fe8a981cca6d2d6b6ba76ae2f10d9425c99028d75426adf1c980c72419cb3f7"
+    },
+    {
+      "path": "03-lookaround-idle/README.txt",
+      "size_bytes": 1872,
+      "sha256": "58c2ff4d77b447487ad86af5824f1b2b05db989aa8dcf72f90e0ac1fd3b41e7f"
+    },
+    {
+      "path": "README.md",
+      "size_bytes": 4098,
+      "sha256": "6a8bec5602653b2256c581241ea8aa2d8a4b6ba76b015025ecbe3412982b125b"
+    },
+    {
+      "path": "previews/01-bounce-up-intro.mp4",
+      "size_bytes": 369749,
+      "sha256": "5203ebd335895a5da1a06c3fe8aee3ef016f6b8baa02203c494bd5685d6b37be"
+    },
+    {
+      "path": "previews/02-subtle-idle.mp4",
+      "size_bytes": 110918,
+      "sha256": "a8772967419e32a45ac425bc37b4c18f701508cc5fa91060254fa1e7beb67904"
+    },
+    {
+      "path": "previews/03-lookaround-idle.mp4",
+      "size_bytes": 121415,
+      "sha256": "d6a04c0dec658915f035c7d24265a4dd877c9009b7e773491723ebac4ac18d4d"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "playdot-spike",
+  "version": "0.0.1",
+  "description": "Stage 0A private-room integration spike. Real-Dot interoperability is not yet verified."
+}

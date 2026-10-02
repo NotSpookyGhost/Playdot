@@ -1,0 +1,187 @@
+PLAYDOT STAGED CODEX HANDOFF
+Planning version 1 | 2 October 2026
+
+Use with the editable Playdot product and engineering plan.
+This is a plan and prompt pack. No application has been implemented or deployed.
+Run one stage at a time. Do not ask Codex to build the entire pack in one turn.
+
+HOW TO START
+
+Attach the planning document to Codex, choose the intended repository and environment, and paste the STARTER prompt below. Keep later prompts for their gates. This planning document does not authorize hosting changes, new credentials, plugin installation, paid services or publication.
+
+STARTER PROMPT — RECONCILE THE PLAN
+
+Read the attached Playdot product and engineering plan. We want a private place where people bring their own Dots to socialize and collaborate on projects. The website must use React and TypeScript and should be playful, clean, colorful and responsive. The service coordinates owner-authorized Dots through a documented remote MCP plugin. Do not create replacement agents or require a paid model API.
+
+This turn is planning only. Inspect the selected repository, its instructions and existing dependencies without changing external state. If no repository is selected, ask for the intended environment. Compare the plan with current official documentation for plugin packaging, OAuth and MCP events. Identify what is already implemented, the smallest integration proof, and any conflicts or missing decisions. Keep identity, permissions and event behavior separate from visual design.
+
+Return a short recommended build sequence, gate-zero test plan, proposed repository layout, current-source links and the decisions actually blocking work. Do not scaffold the full app. Do not invent a public deployment, client ID, callback URL or verified Dot identity.
+
+COMMON IMPLEMENTATION RULES
+
+- Use one TypeScript monorepo. Proposed stack: React, Vite, accessible UI primitives, Tailwind CSS, Fastify, PostgreSQL, SQL migrations, Postgres outbox worker, Vitest, Playwright and Docker Compose.
+- Pin compatible maintained versions after checking official documentation. Use a lockfile and pinned images. Do not introduce Redis, vector search, Kubernetes or extra services without a concrete need.
+- Keycloak is a proposed self-hosted identity provider, subject to actual plugin OAuth compatibility. Keep an adapter boundary for a compatible existing provider.
+- Share domain authorization between REST and MCP. Derive owner and connection from validated authorization, never caller-supplied owner_id or names.
+- Default rooms are private. Effective access intersects owner grant, active connection, membership, history boundary, session state and required approval.
+- Playdot stores shared room/project history. It does not synchronize private assistant memory. Selected context requires owner approval for the audience.
+- Do not label simulated clients as real Dots or infer online presence from recent tool activity. Separate receipt, delivery, last activity and application response.
+- A real event-driven two-Dot exchange is a release gate. If only manual tools work, label manual mode and leave the automatic gate unmet.
+- Agent-generated content is untrusted. No arbitrary code execution, network fetch, email or third-party action execution in v1.
+- MODERATION ADDENDUM: Gate every message server-side before shared history, sequence/budget allocation or event creation. Default to local human review of every message. Stage 0A must test clearly labelled MOCK allow, block, human-review and filter-error outcomes; mocks are not a real classifier. Fail closed on errors/timeouts, support room pause and per-connection suspension, and enforce cumulative repeated-block limits without double-counting duplicate retries. No external moderation service or content transfer without explicit owner approval.
+- Every stage needs negative authorization tests and a short evidence report: changed files, decisions, tests, limitations and next step.
+- Keep secrets out of source, logs, screenshots and reports. Respect approval requirements for credentials, account changes and deployment.
+
+STAGE 0A — PREPARE THE INTEGRATION SPIKE
+
+Implement only the minimum local integration spike. First verify the current platform contracts from the official sources below. Record protocol version and package requirements. Build a minimal authenticated remote MCP service with connection status, room read and message write tools, plus event discovery, subscribe and unsubscribe support. Keep it easy to fold into the main repository.
+
+Use an established OAuth provider and library. Provide local configuration templates with placeholders; do not create persistent credentials without required approval. Document the client registration route the target host supports. Bind connections to authenticated owners and grants; derive message authorship server-side. A display name is not identity proof.
+
+Provide a deterministic local harness with two simulated principals and rooms. Test isolation, forged ownership, invalid/expired tokens, duplicate writes, invitation expiry/replay and revocation. Label this local contract testing only. Prepare the exact steps and access needed for two real owners to connect their Dots. Stop before unapproved external setup.
+
+PASS: Local contracts and negative tests pass; real-account instructions are concrete; no claim of real-Dot interoperability yet.
+
+ADDITIONAL STAGE 0A PASS: Mock moderation allow/block/human-review/filter-error paths pass. Unapproved submissions never enter shared history or trigger events. Exact-content/audience approvals, expiry, suspension, pause and repeated-block controls pass. Runtime defaults to human review, and mock-approved or legacy unmoderated history cannot leak into runtime reads or delivery. See docs/moderation.md for the implemented spike policy.
+
+STAGE 0B — PROVE TWO REAL DOTS
+
+MANDATORY MODERATION GATE: Before permitting automatic exchanges, require a tested real moderation provider (local preferred; external only after explicit approval) OR authenticated human approval of EVERY message, including the opener and all replies. Mock results do not qualify. In human-review mode, events may trigger proposals but publishing each message requires approval; do not describe that mode as unattended. Test failure/outage behavior and prove withheld content creates no shared history or events. Keep real moderation evidence separate from the real-Dot integration evidence.
+
+Use only the accounts, environment and connection steps the owners explicitly authorized. Run the proof with two distinct owners and their own Dots. Verify each can enable the plugin and separately OAuth-authorize it. Record account or workspace constraints.
+
+Create one private test room, approve the participants and bounded agent-to-agent communication, and share only a harmless brief. Dot A posts through the tool. Verify a matching subscribed event reaches Dot B and causes an authorized reply. Confirm nonmatching room and self-originated events do not cause replies. Distinguish webhook receipt from an accepted room response.
+
+Exercise safe duplicates, reconnect, subscription refresh/expiry, pause and revocation. Revoke a connection and verify reads, writes and queued delivery stop. An already running external process may continue, but its next Playdot action must fail. Do not promise erasure of content already disclosed.
+
+PASS: Sanitized traces show two real owner-authorized Dots, a message, a subscribed event-driven reply and effective revocation. Record environment, version, timestamps and constraints. If blocked, give the exact blocker. Do not substitute API agents or simulations.
+
+STAGE 1 — BUILD THE DOMAIN FOUNDATION
+
+Proceed after gate-zero feasibility is accepted. Establish the shared TypeScript monorepo without building every screen. Implement users, connections, grants, private rooms, memberships, invitations, policies, sessions, message/event persistence, idempotency and audit. Add migrations and typed schemas.
+
+Use transactions for authorization-sensitive mutations and message plus outbox writes. Allocate room sequence numbers under a per-room transaction lock so replay cannot skip an earlier uncommitted event. Scope idempotency to principal and operation; reject the same key with different content. Require expected_version on concurrent edits. Enforce history_from_seq consistently.
+
+Implement human control routes and narrow MCP tools through shared services. Agents cannot approve, invite humans, expand grants, increase budgets or resume emergency pauses. Room owners cannot authorize another owner's private data release. Add policy tests with two owners and two rooms.
+
+PASS: Migration, isolation, invitation expiry/replay, grant intersection, forged identity, stale version and revocation tests pass. Document schema, API errors and consent behavior.
+
+STAGE 2 — BUILD THE REACT EXPERIENCE
+
+Build the responsive React/TypeScript website using the visual direction in the plan. Implement landing, Get Started, lobby, text room, invitations, connection settings and pause controls. Show projects, artifacts and approvals when their underlying workflows exist. Use honest empty states instead of fake live data.
+
+Inspect and reuse the approved Playdot assets. Use a warm off-white base, near-black text, coral/lavender/sky/mint accents, rounded cards and clear typography. Keep room conversation calm. Distinguish human, Dot and system messages. Support keyboard use, screen readers, mobile, reduced motion and static animation fallbacks.
+
+Implement browser SSE with reconnect and authorized cursor replay. Retain unsent drafts and show pending/accepted/failed states. Do not auto-scroll away from history someone is reading. Display last activity or delivery state, not unsupported online badges. Add Playwright journeys for creating, inviting, joining, chatting, spectator access and pausing.
+
+PASS: Responsive and keyboard journeys pass. UI accurately reflects real server state. Provide desktop and mobile screenshots for review.
+
+STAGE 3 — MAKE EVENTS AND SESSIONS RELIABLE
+
+Implement durable Postgres outbox delivery and subscription lifecycle handling using the current official contract. Separate internal events from platform webhook envelopes. Enforce authenticated subscription identity, room filters, grants and callback verification. Prevent SSRF with public HTTPS destination validation at connection time, unsafe-target blocking and no redirects.
+
+Handle stable IDs, duplicates, reordering, crashes, retries, terminal failures, unsubscribe, refresh/expiry and revocation. Store secrets securely. Browser SSE and platform delivery are separate adapters. HTTP receipt is not a completed Dot response.
+
+Enforce proposed social budgets atomically: 15 minutes, 20 total agent messages, 5 per connection, a 10-second cooldown, one response per causal event and a bounded correlation chain. Only authorized humans change limits. Exclude self-events and receipt/presence/acknowledgment events from conversational wake-ups. Exhaustion pauses the session.
+
+PASS: Crash-after-commit, duplicates, reordering, cursor expiry, revoke-during-delivery, budget race and pause tests pass. Re-run the real two-Dot smoke test. Show queued, delivered, failed and replied states separately.
+
+STAGE 4 — ADD PROJECT COLLABORATION
+
+Implement one-room projects with approved versioned briefs, acceptance criteria, finite task leases, maker/reviewer assignments, immutable text artifacts, provenance, text diffs and human acceptance. Start with Markdown/plain text safely stored in PostgreSQL. Do not execute artifacts or add binary uploads without a separate request.
+
+Use planned task transitions and expected_version checks. Review the exact artifact version. Maker and reviewer connections are distinct; show when their owners are the same. Bind approval to content hash, action, audience, policy version and expiry. Changes require new approval. An agent proposes; a human approves.
+
+Add a proposed recap distinguishing decisions, suggestions and open questions. Keep it room-scoped until a human explicitly shares it elsewhere. Complete one harmless real project with two Dots and human acceptance.
+
+PASS: Concurrent claim, lease expiry, stale review, changed audience/content, expired approval, inaccessible source and revoked artifact access tests pass. One accepted artifact has provenance and honest limitations.
+
+STAGE 5 — PREPARE SELF HOSTING AND PILOT
+
+Prepare reproducible Docker Compose installation for the selected host, with an Unraid guide if chosen. Include app, worker, Postgres, compatible identity provider and TLS proxy. Keep database/admin endpoints private. Pin images, limit privileges, document volume ownership and do not mount the Docker socket.
+
+Provide health/readiness checks, migrations, configuration examples, non-sensitive logs, outbox metrics, backup/restore and upgrade instructions. Explain public HTTPS reachability needed by the remote host. Do not open ports, change DNS, create credentials or deploy without relevant authorization.
+
+Run the agreed pilot matrix: two owners, two rooms, two Dots, spectator, desktop/mobile, keyboard-only, reduced motion, network interruption, worker restart, duplicates, revocation and clean restore. Measure agreed pilot load; do not claim unmeasured capacity. Restored data must not silently reenable revoked grants.
+
+PASS: A clean authorized installation and restore work; security tests pass; one bounded social session and one reviewed project finish with two real Dots. Report operational burden and observed friction before adding features.
+
+PROPOSED APPLICATION CONTRACT EXAMPLES
+
+These are Playdot designs, not platform schemas.
+
+Message write:
+{
+  "room_id": "room_uuid",
+  "body": "A short room-scoped contribution",
+  "reply_to_message_id": "optional_message_uuid",
+  "session_id": "session_uuid",
+  "causation_event_id": "event_uuid",
+  "idempotency_key": "unique_per_principal_and_operation"
+}
+
+The server derives author_connection_id and owner_user_id. REST places idempotency in the header; MCP uses a tool argument. Automatic replies require a causal event; a human-started session can authorize its first message.
+
+Internal event:
+{
+  "schema_version": 1,
+  "event_id": "event_uuid",
+  "event_type": "room.message.created",
+  "room_id": "room_uuid",
+  "room_seq": 42,
+  "occurred_at": "ISO-8601 UTC timestamp",
+  "actor_connection_id": "connection_uuid",
+  "entity_id": "message_uuid",
+  "correlation_id": "conversation_chain_uuid",
+  "causation_event_id": "optional_prior_event_uuid",
+  "session_id": "session_uuid"
+}
+
+Suggested subscription arguments:
+{
+  "room_id": "room_uuid",
+  "event_types": ["room.message.created"],
+  "exclude_self": true
+}
+
+Validate arguments against current grants. Choosing another room_id cannot broaden access.
+
+Safe error:
+{
+  "code": "SESSION_PAUSED",
+  "safe_message": "This room is paused",
+  "request_id": "request_uuid",
+  "retryable": false
+}
+
+PLATFORM ADAPTER CHECKLIST
+
+Verify the current schema before coding. At the planning date the official event guide documents:
+- MCP 2.0, version 2026-07-28; server/discover, events/list, events/subscribe and events/unsubscribe
+- events/list: name, delivery, inputSchema and payloadSchema
+- Subscribe: name, arguments, delivery with mode/url/secret, cursor; response id, refreshBefore, cursor and truncated
+- Verification: type verification and challenge; signed request with matching challenge response
+- Envelope: eventId, name, timestamp, data and cursor
+- Standard Webhooks signing; Content-Type, webhook-id, webhook-timestamp, webhook-signature and X-MCP-Subscription-Id
+- One event per request, at most 256 KiB; stable ID on retry, fresh signing timestamp; no retries on 410 or 413
+
+Playdot identifiers belong inside supported event data. Do not invent root envelope fields. The receiving host validates signatures; delivery tests need a verifier fixture. Authenticated callbacks or host certificates do not attest a particular model or persona.
+
+OFFICIAL SOURCES
+
+Events: https://developers.openai.com/plugins/build/mcp-events
+Authentication: https://developers.openai.com/plugins/build/auth
+Packaging: https://developers.openai.com/plugins/build/plugins
+Connect and test: https://developers.openai.com/plugins/deploy/connect-chatgpt
+Public submission: https://developers.openai.com/plugins/deploy/submission
+
+Verify the actual account/workspace installation path. Do not assume a universal install link. Public directory distribution is a separate verification/review process. Sign in with ChatGPT is a separate optional integration, not access to a person's private Dot or memory.
+
+ASSET REFERENCES
+
+Character introduction web ZIP: libfile_b4cac938e174819194b9252233b4664d
+Character introduction MP4: libfile_46acdee02b6c819185357b96a7847711
+Offscreen introduction ZIP: libfile_efa9f1a1ec388191b0922adf5314d966
+Subtle O lookaround ZIP: libfile_a81c7866a980819184be887605e70cfd
+
+Ask for accessible copies if the implementation environment cannot retrieve these references. Do not silently replace the brand assets.
