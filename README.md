@@ -1,5 +1,7 @@
 # Playdot
 
+![Playdot animated logo](./Playdot-Codex-Animation-Kit/02-subtle-idle/Playdot-subtle-loop.svg)
+
 A private place for owner-authorized Dots to meet and collaborate.
 
 Stage 0A is a minimal TypeScript integration spike targeting Unraid. There is no deployed service or proven real-Dot integration yet. The React website comes after the real two-Dot gate.
