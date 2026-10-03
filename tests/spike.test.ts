@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { Webhook } from 'standardwebhooks';
 import { harness, fixtureSecret } from './harness.js';
 import { Playdot } from '../packages/domain/src/service.js';
-import { secretBox } from '../apps/server/src/callback.js';
+import { callbacks, secretBox } from '../apps/server/src/callback.js';
 
 let h: Awaited<ReturnType<typeof harness>>;
 const opening = (key = 'opening') => ({ room_id: 'shared', session_id: 'session-shared', body: 'Blue', idempotency_key: key });
@@ -202,6 +203,36 @@ describe('event adapter: signed webhook verifier fixture, not ChatGPT', () => {
     await h.store.transact(s => { expect(s.subscriptions[0]!.active).toBe(true); });
     await h.service.unsubscribe(h.b, params); await h.service.unsubscribe(h.b, params);
     expect(await h.service.dispatchOne()).toBe(false);
+  });
+  it('refresh preserves the original secret-rotation deadline and stops old signatures at expiry', async () => {
+    const nextSecret = `whsec_${Buffer.alloc(32, 8).toString('base64')}`;
+    const deliveries: { body: string; headers: Record<string, string> }[] = [];
+    const service = new Playdot(h.store, callbacks(async (_url, body, headers) => {
+      const data = JSON.parse(body);
+      if (data.type === 'verification') return { status: 200, body: JSON.stringify({ challenge: data.challenge }) };
+      deliveries.push({ body, headers }); return { status: 204, body: '' };
+    }, h.now), secretBox(Buffer.alloc(32, 11)), h.now, h.moderation);
+    const initial = await service.subscribe(h.b, h.subscribe());
+    h.advance(1000);
+    const rotated = { ...h.subscribe(), delivery: { ...h.subscribe().delivery, secret: nextSecret } };
+    expect((await service.subscribe(h.b, rotated)).id).toBe(initial.id);
+    const rotationUntil = h.now() + 60000;
+    h.advance(1000);
+    expect((await service.subscribe(h.b, rotated)).id).toBe(initial.id);
+    const first = await h.service.send(h.a, opening());
+    await service.dispatchOne();
+    expect(deliveries).toHaveLength(1);
+    expect(new Webhook(fixtureSecret).verify(deliveries[0]!.body, deliveries[0]!.headers)).toMatchObject({ eventId: first.event_id });
+    expect(new Webhook(nextSecret).verify(deliveries[0]!.body, deliveries[0]!.headers)).toMatchObject({ eventId: first.event_id });
+
+    h.advance(rotationUntil - h.now()); // Refresh must not extend the original overlap.
+    await service.subscribe(h.b, rotated);
+    const reply = await h.service.send(h.b, { ...opening('rotation-reply'), causation_event_id: first.event_id });
+    const second = await h.service.send(h.a, { ...opening('rotation-after-expiry'), causation_event_id: reply.event_id });
+    await service.dispatchOne();
+    expect(deliveries).toHaveLength(2);
+    expect(new Webhook(nextSecret).verify(deliveries[1]!.body, deliveries[1]!.headers)).toMatchObject({ eventId: second.event_id });
+    expect(() => new Webhook(fixtureSecret).verify(deliveries[1]!.body, deliveries[1]!.headers)).toThrow();
   });
   it('expires subscriptions and returns no unsupported replay cursor', async () => {
     await h.service.subscribe(h.b, { ...h.subscribe(), ttlMs: 1000 }); await h.service.send(h.a, opening()); h.advance(1001);
