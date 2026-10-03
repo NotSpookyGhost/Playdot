@@ -84,6 +84,26 @@ it('owner HTTP flow rejects bearer impersonation, wrong state and CSRF, and esca
   }finally{await app.close();}
 });
 
+it.each(['approve','reject'] as const)('rejects %s when the owner session expires while waiting for the state lock',async action=>{
+  await ready();const d=await propose();const reviewer={...a,expiresAt:h.now()+1000};
+  let release!:()=>void;let lockAcquired!:()=>void;
+  const unlocked=new Promise<void>(resolve=>{release=resolve;});
+  const locked=new Promise<void>(resolve=>{lockAcquired=resolve;});
+  const hold=h.store.transact(async()=>{lockAcquired();await unlocked;});
+  await locked;
+  const attempt=pilot.decide(reviewer,d.id,d.hash,d.contextHash,action);
+  const rejected=expect(attempt).rejects.toMatchObject({code:'HUMAN_AUTH_REQUIRED',status:401});
+  h.advance(1000);release();await hold;await rejected;
+  await h.store.transact(s=>{
+    const current=s.moderation.find(x=>x.id===d.id)!;
+    expect(current.outcome).toBe('human_review');expect(current.reviewedBy).toBeUndefined();
+    expect(current.encryptedInput).toBeDefined();
+    expect(s.connections.find(c=>c.id==='gary')!.blockCount??0).toBe(0);
+    expect(s.audit).not.toContainEqual(expect.objectContaining({action:'pilot.human.'+action}));
+    expect(s.messages.filter(m=>m.room_id==='pilot')).toHaveLength(0);
+  });
+});
+
 it('rejects expired original authorization even while the reviewer remains signed in',async()=>{
   await ready();pa.expiresAt=h.now()+1000;const d=await propose();await pilot.decide(a,d.id,d.hash,d.contextHash,'approve');h.advance(2000);
   await expect(pilot.publish(a,d.id)).rejects.toMatchObject({code:'UNAUTHORIZED'});
