@@ -11,7 +11,18 @@ export interface Secrets { seal(value: string): string; open(value: string): str
 export const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 
 export class Playdot {
-  constructor(public store: Store, private callback: Callback, private secrets: Secrets, public now: () => number = Date.now, private moderator: ModerationAdapter = humanOnlyModeration) {}
+  constructor(public store: Store, private callback: Callback, private secrets: Secrets, public now: () => number = Date.now, private moderator: ModerationAdapter = humanOnlyModeration, private runtime: { roomsEnabled: boolean; eventsEnabled: boolean } = { roomsEnabled: true, eventsEnabled: true }) {}
+
+  get eventsEnabled() { return this.runtime.roomsEnabled && this.runtime.eventsEnabled; }
+  private requireRooms() { if (!this.runtime.roomsEnabled) throw new Fault('REAL_ROOMS_DISABLED', 403); }
+  authorizeDiscovery(p: Principal, clients: string[]) {
+    return this.run(s => {
+      if (p.expiresAt <= this.now()) throw new Fault('UNAUTHORIZED', 401);
+      if (!clients.includes(p.clientId) || !p.scopes.includes('room:read')) throw new Fault('FORBIDDEN');
+      // Discovery never enrolls an identity or restores a revoked/old-issuer binding.
+      if (s.connections.some(c => c.subject === p.subject && c.clientId === p.clientId)) this.connection(s, p);
+    });
+  }
 
   private approved(message: Message) {
     return message.moderation?.approved === true && (message.moderation.source === 'human' || (this.moderator.source === 'mock' && message.moderation.source === 'mock'));
@@ -85,6 +96,7 @@ export class Playdot {
   }
   status(p: Principal) { return this.run(s => { const c = this.connection(s, p); return { owner_user_id: c.ownerId, connection_id: c.id, verified_level: 'owner_authorized', scopes: c.scopes.filter(x => p.scopes.includes(x)) }; }); }
   room(p: Principal, input: unknown) {
+    this.requireRooms();
     const a = roomInput.parse(input);
     return this.run(s => { const { room, member } = this.access(s, p, a.room_id, 'room:read');
       if (room.session.state === 'active' && room.session.expiresAt <= this.now()) { room.session.state = 'paused'; room.session.reason = 'TIME_LIMIT'; this.cancelRoom(s, room.id); }
@@ -92,6 +104,7 @@ export class Playdot {
     });
   }
   read(p: Principal, input: unknown) {
+    this.requireRooms();
     const a = readInput.parse(input);
     return this.run(s => { const { member } = this.access(s, p, a.room_id, 'room:read');
       const messages = s.messages.filter(m => this.approved(m) && m.room_id === a.room_id && m.room_seq > a.after_seq && m.room_seq >= member.historyFrom).slice(0, a.limit);
@@ -99,6 +112,7 @@ export class Playdot {
     });
   }
   send(p: Principal, input: unknown) {
+    this.requireRooms();
     const a = sendInput.parse(input);
     return this.run(async s => {
       const { c, room, member } = this.access(s, p, a.room_id, 'message:write');
@@ -151,10 +165,12 @@ export class Playdot {
     });
   }
   async canSubscribe(p: Principal) {
+    if (!this.eventsEnabled) return false;
     return this.run(s => { this.connection(s, p); return s.rooms.some(r => { try { this.access(s, p, r.id, 'events:subscribe'); return true; } catch { return false; } }); });
   }
   private subscriptionId(connectionId: string, roomId: string, url: string) { return hash(JSON.stringify([connectionId, 'room.message.created', roomId, true, url])); }
   async subscribe(p: Principal, input: unknown) {
+    if (!this.eventsEnabled) throw new Fault('EVENTS_DISABLED');
     const a = subscribeInput.parse(input);
     const c = await this.run(s => { const { c, room } = this.access(s, p, a.arguments.room_id, 'events:subscribe'); this.active(s, room); return c; });
     const id = this.subscriptionId(c.id, a.arguments.room_id, a.delivery.url);
@@ -185,6 +201,7 @@ export class Playdot {
     });
   }
   private deliverable(s: State, sub: Subscription) {
+    if (!this.eventsEnabled) return false;
     if (!sub.active || sub.expiresAt <= this.now() || sub.tokenExpiresAt <= this.now()) return false;
     const c = s.connections.find(x => x.id === sub.connectionId);
     if (!c) return false;
@@ -194,6 +211,7 @@ export class Playdot {
     } catch { return false; }
   }
   async dispatchOne() {
+    if (!this.eventsEnabled) return false;
     // Minimal serial worker: hold the aggregate lock through bounded HTTP I/O.
     // Revocation and dispatch have one ordering; no cached grants escape the lock.
     return this.store.transact(async s => {

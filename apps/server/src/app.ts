@@ -9,8 +9,16 @@ import type { Authenticate } from './auth.js';
 
 const rpc = z.strictObject({ jsonrpc: z.literal('2.0'), id: z.union([z.string().max(128), z.number()]).optional(), method: z.string().max(128), params: z.unknown().optional() });
 const call = z.strictObject({ name: z.string(), arguments: z.unknown().optional() });
-export function buildApp(options: { service: Playdot; authenticate: Authenticate; resource: string; issuer: string; mode?: 'locked' | 'oidc'; ready?: () => Promise<void>; owner?: { pilot: Pilot; login: OwnerLogin; origin: string; now?: () => number } }) {
+export function buildApp(options: { service: Playdot; authenticate: Authenticate; resource: string; issuer: string; mode?: 'locked' | 'oidc'; realRooms?: boolean; discoveryClientIds?: string[]; ready?: () => Promise<void>; owner?: { pilot: Pilot; login: OwnerLogin; origin: string; now?: () => number } }) {
   const app = Fastify({ logger: false, bodyLimit: 32 * 1024, trustProxy: false });
+  const stage = options.mode === 'oidc' && !options.realRooms ? '0B-oauth-setup' : options.owner ? '0B-prepared' : '0A';
+  const capabilities = () => ({ tools: {}, ...(options.service.eventsEnabled ? { events: {} } : {}) });
+  const authorize = async (header: string | undefined) => {
+    const principal = await options.authenticate(header);
+    if (options.discoveryClientIds) await options.service.authorizeDiscovery(principal, options.discoveryClientIds);
+    else await options.service.status(principal);
+    return principal;
+  };
   const metadata = `${new URL(options.resource).origin}/.well-known/oauth-protected-resource`;
   app.addHook('onRequest', async (req, reply) => {
     reply.header('Cache-Control', 'no-store');
@@ -18,20 +26,21 @@ export function buildApp(options: { service: Playdot; authenticate: Authenticate
     if (req.headers.origin && !(options.owner && req.url.startsWith('/owner') && req.headers.origin === options.owner.origin)) return reply.code(403).send({ code: 'ORIGIN_NOT_ALLOWED' });
   });
   if (options.owner) registerOwner(app, options.owner);
-  app.get('/health', async () => ({ status: 'ok', stage: options.owner ? '0B-prepared' : '0A', real_dot_verified: false, ...(options.mode ? { mode: options.mode, real_rooms_enabled: options.mode === 'oidc' } : {}) }));
+  app.get('/health', async () => ({ status: 'ok', stage, real_dot_verified: false, ...(options.mode ? { mode: options.mode, real_rooms_enabled: options.realRooms === true, events_enabled: options.service.eventsEnabled === true, worker_enabled: options.service.eventsEnabled === true } : {}) }));
   app.get('/ready', async (_req, reply) => {
-    try { await options.ready?.(); return { status: 'ready', stage: options.owner ? '0B-prepared' : '0A' }; }
+    try { await options.ready?.(); return { status: 'ready', stage }; }
     catch { return reply.code(503).send({ status: 'not_ready' }); }
   });
   app.get('/.well-known/oauth-protected-resource', async () => ({ resource: options.resource, authorization_servers: [options.issuer], scopes_supported: scopes, bearer_methods_supported: ['header'] }));
   app.get('/.well-known/oauth-protected-resource/mcp', async () => ({ resource: options.resource, authorization_servers: [options.issuer], scopes_supported: scopes, bearer_methods_supported: ['header'] }));
-  app.get('/mcp', async (_req, reply) => reply.code(405).header('Allow', 'POST').send());
+  app.get('/mcp', async (req, reply) => {
+    try { await authorize(req.headers.authorization); return reply.code(405).header('Allow', 'POST').send(); }
+    catch (error) { const status = error instanceof Fault ? error.status : 500; if (status === 401) reply.header('WWW-Authenticate', `Bearer resource_metadata="${metadata}"`); return reply.code(status).send({ code: error instanceof Fault ? error.code : 'INTERNAL_ERROR' }); }
+  });
   app.post('/mcp', async (req, reply) => {
     let id: string | number | null = null;
     try {
-      const principal = await options.authenticate(req.headers.authorization);
-      // Discovery and every method reject revoked/unknown bindings, not just tools.
-      await options.service.status(principal);
+      const principal = await authorize(req.headers.authorization);
       const message = rpc.parse(req.body); id = message.id ?? null;
       const version = req.headers['mcp-protocol-version'];
       if (version && version !== PROTOCOL) throw new Fault('UNSUPPORTED_PROTOCOL', 400);
@@ -42,10 +51,10 @@ export function buildApp(options: { service: Playdot; authenticate: Authenticate
       let result: unknown;
       switch (message.method) {
         case 'server/discover':
-          result = { resultType: 'complete', supportedVersions: [PROTOCOL], capabilities: { tools: {}, events: {} } }; break;
+          result = { resultType: 'complete', supportedVersions: [PROTOCOL], capabilities: capabilities() }; break;
         case 'initialize': {
           const params = z.object({ protocolVersion: z.literal(PROTOCOL) }).parse(message.params);
-          result = { protocolVersion: params.protocolVersion, capabilities: { tools: {}, events: {} }, serverInfo: { name: options.owner ? 'playdot-stage-0b' : 'playdot-stage-0a', version: '0.0.1' } }; break;
+          result = { protocolVersion: params.protocolVersion, capabilities: capabilities(), serverInfo: { name: options.owner ? 'playdot-stage-0b' : 'playdot-stage-0a', version: '0.0.1' } }; break;
         }
         case 'ping': result = {}; break;
         case 'tools/list':

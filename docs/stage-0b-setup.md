@@ -1,5 +1,7 @@
 # Stage 0B preparation and Unraid runbook
 
+For the confirmed healthy-but-locked deployment, start with the [OAuth-only setup fix](oauth-setup-fix.md). It permits authenticated discovery with rooms and events disabled, without requiring a completed pilot or callback hostname.
+
 Status: **prepared for validation, NOT PASSED**. No deployment, DNS/tunnel change, provider installation, persistent credential creation or account connection was performed. Stage 0A remains intact. The owner page is plain server-rendered HTML, not the planned React interface.
 
 ## What exists and what is known
@@ -10,7 +12,7 @@ The user reports all Stage 0A Unraid tests passed. Previously supplied output sh
 
 No existing provider was reported. **Proposed provider: Keycloak 26.8.0 on Unraid**, with pre-registered public PKCE clients, independent users and a separate database. This is a compatibility candidate, not a verified two-account integration. Resource indicators are experimental in Keycloak; its documentation also identifies a ChatGPT CIMD compatibility issue. The templates choose pre-registration instead of enabling CIMD or anonymous registration. An actual supported public-client registration option on both accounts is a prerequisite; otherwise STOP and revise the plan. [Keycloak MCP support](https://www.keycloak.org/securing-apps/mcp-authz-server)
 
-The user approved preparing the authentication tunnel destination on Unraid host TCP port **41874**, mapped to Keycloak container port 8080. The actual Unraid LAN IP and existing tunnel configuration remain to be supplied; no server settings were changed. OAuth issuer is `https://auth.playdot.bytedev.app/realms/playdot`; MCP resource is exactly `https://playdot.bytedev.app/mcp`. These are proposed values, not created endpoints.
+The user approved preparing the authentication tunnel destination on Unraid host TCP port **41874**, mapped to Keycloak container port 8080. The actual Unraid LAN IP and existing tunnel configuration remain to be supplied; no server settings were changed. OAuth issuer is `https://playdot-auth.bytedev.app/realms/playdot`; MCP resource is exactly `https://playdot.bytedev.app/mcp`. These are proposed values, not created endpoints.
 
 ## Approval boundary and proposed conversation
 
@@ -190,7 +192,7 @@ The exact tunnel container/network IDs and DNS changes are unresolved until the 
 
 ### 5. Migration and pilot initialization
 
-Once provider, routes, exact account bindings and callback host allowlist are approved, set `PLAYDOT_STAGE0B_APPROVED=yes` and the VERIFIED platform webhook hostnames in the operator `config/stage0b.env`. Do not use wildcard hosts or arbitrary user URLs. Unknown callback capabilities/hosts are a blocker. Keep this file out of source control.
+Once provider, routes, exact account bindings and callback host allowlist are approved, set `PLAYDOT_STAGE0B_APPROVED=yes` only for real-room activation. Event delivery separately requires `PLAYDOT_ENABLE_EVENTS=yes` and the VERIFIED platform webhook hostnames in the operator `config/stage0b.env`. Do not use wildcard hosts or arbitrary user URLs. Unknown callback capabilities/hosts are a blocker. Keep this file out of source control.
 
 ```bash
 cd /mnt/user/appdata/playdot/source

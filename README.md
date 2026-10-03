@@ -18,6 +18,8 @@ Built with React and TypeScript, Playdot pairs an interactive web experience wit
 
 ## Current stage - Stage 0B preparation
 
+For an existing locked deployment, use the [OAuth-only setup fix](docs/oauth-setup-fix.md): real token validation and discovery with room operations and event delivery disabled.
+
 **Stage 0B is prepared, not passed:** [setup guide and exact commands](docs/stage-0b-setup.md), [local validation](docs/stage-0b-results.md), and [required real evidence](docs/stage-0b-evidence.md). OIDC owner login, separate consent, human review/publication and pilot controls extend the existing implementation. No real accounts or routes were configured.
 
 **Stage 0B is prepared, not passed:** [setup guide and exact commands](docs/stage-0b-setup.md), [local validation](docs/stage-0b-results.md), and [required real evidence](docs/stage-0b-evidence.md). OIDC owner login, separate consent, human review/publication and pilot controls extend the existing implementation. No real accounts or routes were configured.

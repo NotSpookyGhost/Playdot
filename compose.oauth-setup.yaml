@@ -1,0 +1,13 @@
+# OAuth discovery only; no pilot mount, encryption key, owner control or worker.
+# Apply AFTER compose.yaml. Do not combine with the real-room overlay.
+services:
+  playdot:
+    environment:
+      PLAYDOT_MODE: oidc
+      PLAYDOT_ENABLE_REAL_ROOMS: "no"
+      PLAYDOT_ENABLE_EVENTS: "no"
+      CALLBACK_ALLOWED_HOSTS: ""
+      OIDC_ISSUER: https://playdot-auth.bytedev.app/realms/playdot
+      OIDC_JWKS_URL: https://playdot-auth.bytedev.app/realms/playdot/protocol/openid-connect/certs
+      MCP_RESOURCE: https://playdot.bytedev.app/mcp
+      OIDC_SETUP_CLIENT_IDS: playdot-gary,playdot-friend

@@ -5,10 +5,11 @@ services:
     environment:
       PLAYDOT_MODE: oidc
       PLAYDOT_ENABLE_REAL_ROOMS: ${PLAYDOT_STAGE0B_APPROVED:?Explicit Stage 0B approval required}
-      OIDC_ISSUER: https://auth.playdot.bytedev.app/realms/playdot
-      OIDC_JWKS_URL: https://auth.playdot.bytedev.app/realms/playdot/protocol/openid-connect/certs
+      OIDC_ISSUER: https://playdot-auth.bytedev.app/realms/playdot
+      OIDC_JWKS_URL: https://playdot-auth.bytedev.app/realms/playdot/protocol/openid-connect/certs
       SUBSCRIPTION_KEY_BASE64_FILE: /run/secrets/subscription_key
-      CALLBACK_ALLOWED_HOSTS: ${CALLBACK_ALLOWED_HOSTS:?Use verified platform callback hostnames only}
+      PLAYDOT_ENABLE_EVENTS: ${PLAYDOT_ENABLE_EVENTS:-no}
+      CALLBACK_ALLOWED_HOSTS: ${CALLBACK_ALLOWED_HOSTS:-}
       PLAYDOT_PILOT_CONFIG_FILE: /run/playdot/pilot.json
     secrets: [subscription_key]
     volumes:

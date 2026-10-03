@@ -1,5 +1,5 @@
 {
-  "issuer": "https://auth.playdot.bytedev.app/realms/playdot",
+  "issuer": "https://playdot-auth.bytedev.app/realms/playdot",
   "ownerClientId": "playdot-owner",
   "roomId": "stage0b-shared",
   "privateRoomId": "stage0b-private",

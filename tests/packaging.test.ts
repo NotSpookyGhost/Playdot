@@ -5,9 +5,9 @@ import { Fault } from '../packages/domain/src/model.js';
 import type { Playdot } from '../packages/domain/src/service.js';
 
 afterEach(() => vi.unstubAllEnvs());
-it('packaged runtime defaults locked and rejects mock modes and unapproved real rooms', () => {
+it('packaged runtime defaults locked, rejects mock modes and permits OIDC setup', () => {
   vi.stubEnv('PLAYDOT_MODE', undefined); vi.stubEnv('PLAYDOT_ENABLE_REAL_ROOMS', undefined);
-  expect(runtimeMode()).toBe('locked'); expect(() => runtimeMode('mock')).toThrow(); expect(() => runtimeMode('oidc')).toThrow();
+  expect(runtimeMode()).toBe('locked'); expect(() => runtimeMode('mock')).toThrow(); expect(runtimeMode('oidc')).toBe('oidc');
 });
 it('locked health is honest, database readiness fails closed, and MCP cannot reach domain state', async () => {
   let ready = false;

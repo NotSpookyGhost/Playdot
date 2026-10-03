@@ -16,6 +16,7 @@ COPY packages packages
 COPY scripts/build.mjs scripts/build.mjs
 COPY scripts/migrate.ts scripts/migrate.ts
 COPY scripts/pilot.ts scripts/pilot.ts
+COPY scripts/migrate-pilot-issuer.ts scripts/migrate-pilot-issuer.ts
 RUN npm run build
 RUN npm prune --omit=dev --ignore-scripts --no-audit --no-fund
 
@@ -38,6 +39,7 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./package.json
 COPY scripts/check-provider.mjs ./scripts/check-provider.mjs
+COPY scripts/verify-oauth-setup.mjs ./scripts/verify-oauth-setup.mjs
 USER 1000:1000
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 CMD ["node", "-e", "fetch('http://127.0.0.1:3000/ready',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]

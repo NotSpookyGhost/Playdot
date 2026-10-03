@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "noEmit": false, "outDir": "dist", "rootDir": "." },
-  "include": ["apps/**/*.ts", "packages/**/*.ts", "scripts/migrate.ts", "scripts/pilot.ts"],
+  "include": ["apps/**/*.ts", "packages/**/*.ts", "scripts/migrate.ts", "scripts/pilot.ts", "scripts/migrate-pilot-issuer.ts"],
   "exclude": ["tests", "node_modules", "dist"]
 }

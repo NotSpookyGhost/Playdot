@@ -52,7 +52,7 @@ services:
       KC_DB_USERNAME: playdot
       KC_HEALTH_ENABLED: "true"
       KC_FEATURES: resource-indicators
-      KC_HOSTNAME: https://auth.playdot.bytedev.app
+      KC_HOSTNAME: https://playdot-auth.bytedev.app
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
       KC_BOOTSTRAP_ADMIN_USERNAME: playdot-bootstrap

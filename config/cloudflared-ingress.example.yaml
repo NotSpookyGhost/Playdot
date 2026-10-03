@@ -4,10 +4,10 @@
 # cloudflared does not expand this placeholder or Compose environment variables.
 # The application route still requires the actual Playdot ingress network.
 ingress:
-  - hostname: auth.playdot.bytedev.app
+  - hostname: playdot-auth.bytedev.app
     path: ^/(realms/playdot(/.*)?|resources/.*)$
     service: http://REPLACE_WITH_UNRAID_LAN_IP:41874
-  - hostname: auth.playdot.bytedev.app
+  - hostname: playdot-auth.bytedev.app
     service: http_status:404
   - hostname: playdot.bytedev.app
     service: http://playdot:3000
