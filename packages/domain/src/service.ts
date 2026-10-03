@@ -168,6 +168,10 @@ export class Playdot {
       const sub: Subscription = { id, connectionId: c.id, roomId: room.id, url: a.delivery.url,
         secret: this.secrets.seal(a.delivery.secret), expiresAt, tokenExpiresAt: p.expiresAt, active: true };
       if (previous && this.secrets.open(previous.secret) !== a.delivery.secret) { sub.oldSecret = previous.secret; sub.rotationUntil = this.now() + 60000; }
+      else if (previous?.oldSecret && (previous.rotationUntil ?? 0) > this.now()) {
+        // An unchanged-secret refresh keeps the existing overlap without extending it.
+        sub.oldSecret = previous.oldSecret; sub.rotationUntil = previous.rotationUntil;
+      }
       s.subscriptions = s.subscriptions.filter(x => x.id !== id); s.subscriptions.push(sub);
       s.audit.push({ action: previous ? 'subscription.refreshed' : 'subscription.created', target: id, at: this.now() });
       return { id, refreshBefore: new Date(expiresAt).toISOString(), cursor: null, truncated: false };
