@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const PROTOCOL = '2026-07-28';
+export const SUPPORTED_PROTOCOLS = [PROTOCOL, '2025-11-25', '2025-06-18', '2025-03-26'] as const;
 export const scopes = ['room:read', 'message:write', 'events:subscribe'] as const;
 export const empty = z.strictObject({});
 export const roomInput = z.strictObject({ room_id: z.string().min(1).max(128) });

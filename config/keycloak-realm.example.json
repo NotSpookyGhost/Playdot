@@ -61,9 +61,20 @@
           "protocolMapper": "oidc-audience-mapper",
           "consentRequired": false,
           "config": {
-            "included.client.audience": "playdot-resource",
+            "included.custom.audience": "https://playdot.bytedev.app/mcp",
             "access.token.claim": "true",
             "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "playdot-subject",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "consentRequired": false,
+          "config": {
+            "access.token.claim": "true",
+            "lightweight.claim": "true",
+            "introspection.token.claim": "true"
           }
         }
       ]
@@ -99,9 +110,20 @@
           "protocolMapper": "oidc-audience-mapper",
           "consentRequired": false,
           "config": {
-            "included.client.audience": "playdot-resource",
+            "included.custom.audience": "https://playdot.bytedev.app/mcp",
             "access.token.claim": "true",
             "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "playdot-subject",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "consentRequired": false,
+          "config": {
+            "access.token.claim": "true",
+            "lightweight.claim": "true",
+            "introspection.token.claim": "true"
           }
         }
       ]

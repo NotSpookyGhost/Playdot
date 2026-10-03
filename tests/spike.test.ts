@@ -12,7 +12,7 @@ afterEach(async () => { await h?.close(); });
 describe(`local contracts: simulated principals, ${process.env.PLAYDOT_TEST_NETWORK === 'yes' ? 'network' : 'embedded'} PostgreSQL`, () => {
   it('advertises MCP event discovery and four narrow tools', async () => {
     const discover = await h.rpc(h.tokenA, 'server/discover');
-    expect(discover.body.result.supportedVersions).toEqual(['2026-07-28']);
+    expect(discover.body.result.supportedVersions).toEqual(['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26']);
     const tools = await h.rpc(h.tokenA, 'tools/list');
     expect(tools.body.result.tools).toHaveLength(4);
     expect(tools.body.result.tools.some((x: { name: string }) => /pause|grant|approve|revoke/.test(x.name))).toBe(false);

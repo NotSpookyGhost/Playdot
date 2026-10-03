@@ -27,6 +27,7 @@ COPY apps apps
 COPY packages packages
 COPY scripts scripts
 COPY tests tests
+COPY config/keycloak-realm.example.json config/keycloak-realm.example.json
 RUN mkdir -p /app/node_modules/.vite-temp && chown 1000:1000 /app/node_modules/.vite-temp
 USER 1000:1000
 ENV HOME=/tmp
@@ -39,6 +40,7 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./package.json
 COPY scripts/check-provider.mjs ./scripts/check-provider.mjs
+COPY scripts/collect-diagnostics.mjs ./scripts/collect-diagnostics.mjs
 COPY scripts/verify-oauth-setup.mjs ./scripts/verify-oauth-setup.mjs
 USER 1000:1000
 EXPOSE 3000

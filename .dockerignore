@@ -12,6 +12,8 @@
 !scripts/**
 !tests/
 !tests/**
+!config/
+!config/keycloak-realm.example.json
 !infra/
 !infra/postgres/
 !infra/postgres/**

@@ -11,5 +11,5 @@ try{
   const m=await get(new URL('/.well-known/oauth-protected-resource',resource));
   if(m.resource!==resource||!m.authorization_servers?.includes(issuer))throw Error();
   for(const scope of ['room:read','message:write','events:subscribe'])if(!m.scopes_supported?.includes(scope))throw Error();
-  console.log('PASS: HTTPS metadata, issuer, S256, RS256 keys and protected resource. Account login, resource binding and event support remain unverified.');
+  console.log('PASS: HTTPS metadata, issuer, S256, RS256 keys and protected resource. Issued-token audience/client/scopes, authenticated MCP discovery, account login and event support remain unverified.');
 }catch{console.error('FAIL: provider/resource metadata unavailable or incompatible. No credentials were requested or printed.');process.exitCode=1;}
