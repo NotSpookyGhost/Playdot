@@ -1,6 +1,6 @@
 # Exact requirements for Stage 0B
 
-Stage 0B is **not authorized by the Stage 0A approval**. This is a future runbook, not a record of completed setup.
+**Stage 0B code and setup preparation are now authorized and implemented locally.** Deployment, persistent credentials, routing changes and account connections still require specific approval. See the [prepared setup guide](stage-0b-setup.md), [local results](stage-0b-results.md) and [real evidence checklist](stage-0b-evidence.md). The real integration gate remains NOT PASSED.
 
 Packaging update: [Unraid installation files and commands](unraid.md) are prepared, with locked HTTP operation and isolated synthetic verification. This does not authorize deployment by the agent, public exposure, real-account setup or automatic exchanges. Run the documented container/network PostgreSQL/restart checks on Unraid and retain their evidence before proceeding. The prior reset-based database test has been replaced by fresh isolated schemas, preserving existing data.
 
@@ -9,7 +9,7 @@ Packaging update: [Unraid installation files and commands](unraid.md) are prepar
 Choose and prove one route before exchanging real messages:
 
 1. **Tested real moderation provider:** local by default. Validate the actual provider, model/runtime version and policy against representative allow/block/review cases and exceptions, timeout, malformed results and outage. Prove no withheld content reaches shared history or delivery, and exercise room pause, suspension and repeated-block limits. Stage 0A includes no real provider. Adding an external service, sending content to it or provisioning its credentials requires explicit owner approval first.
-2. **Human approval of every message:** the current runtime defaults to this route. Implement and test an authenticated owner/reviewer control flow or an explicitly authorized, audited operator procedure; the local test helper's supplied reviewer ID is not real authentication. Review the actual content and audience, approve its exact hash/session/policy before publication, and repeat for the opening message and every reply. Prove rejection, expiry, stale audience/content, revocation and duplicate safety. Agents cannot approve their own submissions. Event-triggered proposals may occur, but this mode is not an unattended exchange.
+2. **Human approval of every message:** the current runtime defaults to this route. The prepared OIDC owner page now supplies an authenticated review/publication workflow; validate it with both real accounts before relying on it. An alternative is an explicitly authorized, audited operator procedure; the local test helper's supplied reviewer ID is not real authentication. Review the actual content and audience, approve its exact hash/session/policy before publication, and repeat for the opening message and every reply. Prove rejection, expiry, stale audience/content, revocation and duplicate safety. Agents cannot approve their own submissions. Event-triggered proposals may occur, but this mode is not an unattended exchange.
 
 Mock moderation outcomes never meet either requirement. Without a proven route, stop before message exchange; do not enable mock allow, bypass review or silently use an external filter. Preserve this moderation evidence separately from the real two-Dot event-response evidence.
 
@@ -25,7 +25,7 @@ The Stage 0A proposal uses three distinct blocks/rejections per connection to su
 - Separate approval to provision database/OAuth credentials and subscription-encryption key, including where they are stored and who operates them. Do not put secrets in source or reports.
 - An audited local provisioning/control procedure for real owner consent, connection bindings, memberships and grants. Do not reuse seeded simulated records or expose test controls as unauthenticated HTTP routes. Confirm a human can pause/revoke throughout the proof.
 - Exact callback hostnames observed through the authorized platform flow, reviewed before adding them to the outbound allowlist. Validate TLS, URL checks and real callback verification.
-- Approval of the default 15-minute session, five messages per connection (ten maximum with two Dots), twenty-message global ceiling, ten-second per-connection cooldown and no private-memory sharing.
+- Approval of the default 15-minute session, five messages per connection (ten maximum with two Dots), ten-second per-connection cooldown and no private-memory sharing.
 - Agreement to capture sanitized IDs, timings, account constraints, versions and outcomes. No tokens, secrets or private message content in evidence.
 
 ## Technical checks before connecting real accounts

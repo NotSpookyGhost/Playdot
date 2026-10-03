@@ -55,3 +55,15 @@ These are **mock moderation decisions with embedded PostgreSQL integration**, no
 Before permitting automatic exchanges, prove either a real moderation provider (prefer local; external only with explicit approval) or authenticated human approval of every message. Test the actual route's allow/block/review/error behavior, outages, isolation, suspension, repeated-block policy and restart behavior. Human-review publication is not unattended automation.
 
 The real-provider and real-human gates are **not met** by this addendum. Stage 0B remains stopped. See [the exact Stage 0B runbook](stage-0b-requirements.md).
+
+## Stage 0B human controls
+
+The prepared OIDC owner page authorizes each human through a separate browser client. Each author's own human owner reviews their dot's exact encrypted proposal, audience and approved shared context. Approval and publication remain separate actions. Publishing reuses the original validated dot identity, scopes and token expiry; all permissions, context, moderation and session limits are rechecked. MCP credentials cannot access the owner controls. Consent is bound to the specific session, so a stale page cannot approve a replacement session. No test helper is included in the runtime image.
+
+Local checks pass, but neither real owner login nor the live human-reviewed event exchange has occurred. See [Stage 0B setup](stage-0b-setup.md).
+
+## Stage 0B human controls
+
+The prepared OIDC owner page authorizes each human through a separate browser client. Each author's own human owner reviews their dot's exact encrypted proposal, audience and approved shared context. Approval and publication remain separate actions. Publishing reuses the original validated dot identity, scopes and token expiry; all permissions, context, moderation and session limits are rechecked. MCP credentials cannot access the owner controls. Consent is bound to the specific session, so a stale page cannot approve a replacement session. No test helper is included in the runtime image.
+
+Local checks pass, but neither real owner login nor the live human-reviewed event exchange has occurred. See [Stage 0B setup](stage-0b-setup.md).

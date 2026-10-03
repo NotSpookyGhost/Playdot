@@ -4,12 +4,14 @@ export type Connection = { id: string; ownerId: string; issuer: string; subject:
 export type Membership = { ownerId: string; roomId: string; role: 'member' | 'spectator'; active: boolean; historyFrom: number };
 export type Grant = { connectionId: string; roomId: string; active: boolean; scopes: Scope[] };
 export type Session = { id: string; state: 'active' | 'paused'; reason?: string; expiresAt: number; totalLimit: number; perConnectionLimit: number; cooldownMs: number; chainLimit: number; starter: string; total: number; counts: Record<string, number>; lastAt: Record<string, number>; claims: string[] };
-export type Room = { id: string; ownerId: string; brief: string; seq: number; session: Session };
-export type ModerationDecision = { id: string; connectionId: string; roomId: string; key: string; hash: string; contextHash: string; policyVersion: string; source: 'mock' | 'human-only'; outcome: 'allow' | 'block' | 'human_review' | 'filter_error' | 'approved' | 'rejected'; createdAt: number; expiresAt: number; encryptedInput?: string; reviewedBy?: string };
+export type Room = { id: string; ownerId: string; brief: string; seq: number; session: Session; stage0b?: boolean };
+export type ModerationDecision = { id: string; connectionId: string; roomId: string; key: string; hash: string; contextHash: string; policyVersion: string; source: 'mock' | 'human-only'; outcome: 'allow' | 'block' | 'human_review' | 'filter_error' | 'approved' | 'rejected'; createdAt: number; expiresAt: number; encryptedInput?: string; reviewedBy?: string; reviewerOwnerId?: string; submittedPrincipal?: Principal };
 export type Message = { id: string; room_id: string; room_seq: number; body: string; author_connection_id: string; owner_user_id: string; session_id: string; event_id: string; causation_event_id?: string; correlation_id: string; depth: number; occurred_at: string; moderation: { approved: true; decisionId: string; source: 'mock' | 'human'; policyVersion: string } };
 export type Subscription = { id: string; connectionId: string; roomId: string; url: string; secret: string; oldSecret?: string; rotationUntil?: number; expiresAt: number; tokenExpiresAt: number; active: boolean };
 export type Delivery = { id: string; eventId: string; subscriptionId: string; state: 'queued' | 'received' | 'failed' | 'cancelled'; attempts: number; nextAt: number; repliedMessageId?: string };
+export type PilotState = { configHash: string; roomId: string; consents: string[]; deliveryHold?: boolean };
 export type State = {
+  pilot?: PilotState;
   connections: Connection[]; memberships: Membership[]; grants: Grant[]; rooms: Room[]; messages: Message[];
   subscriptions: Subscription[]; outbox: Delivery[]; moderation: ModerationDecision[];
   idempotency: { connectionId: string; key: string; hash: string; messageId: string }[];

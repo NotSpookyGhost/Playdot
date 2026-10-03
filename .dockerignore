@@ -15,6 +15,8 @@
 !infra/
 !infra/postgres/
 !infra/postgres/**
+!infra/keycloak/
+!infra/keycloak/**
 !Dockerfile
 **/node_modules
 **/.env

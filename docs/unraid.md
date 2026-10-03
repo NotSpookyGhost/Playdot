@@ -139,7 +139,7 @@ docker compose --profile verify run --rm --no-deps -e PLAYDOT_TEST_NETWORK=no te
 docker compose --profile verify run --rm --no-deps -e PLAYDOT_TEST_NETWORK=no tests npm run spike
 ```
 
-Expected: type-check succeeds; **88 tests pass and 1 network test is skipped**; demo prints two accepted simulated messages, one fixture event, revoked read denied, `MOCK ALLOW` and `real_dot_gate: NOT RUN`. Initial PGlite startup may take time. Any failed test is a stop condition, not permission to relax moderation.
+Expected: type-check succeeds; **98 tests pass and 1 network test is skipped**; demo prints two accepted simulated messages, one fixture event, revoked read denied, `MOCK ALLOW` and `real_dot_gate: NOT RUN`. Initial PGlite startup may take time. Any failed test is a stop condition, not permission to relax moderation.
 
 Network PostgreSQL suite, on a different persistent cluster:
 
@@ -149,7 +149,7 @@ docker compose --profile verify exec -T test-db pg_isready -U postgres -d playdo
 docker compose --profile verify run --rm tests npm test
 ```
 
-Expected: accepting connections and **89 tests pass, none skipped**. The common spike/moderation harness now uses network PostgreSQL; the two explicitly embedded dump/reopen tests still use PGlite. Each network harness creates a fresh random `verify_...` schema inside `playdot_verify`. Reopen tests use that same schema. Existing schemas are retained; no reset, truncation, schema deletion or volume removal occurs. Repeated suites consume additional verification storage, so monitor that separate directory. No tests use the app's `playdot` database.
+Expected: accepting connections and **99 tests pass, none skipped**. The common spike/moderation harness now uses network PostgreSQL; the two explicitly embedded dump/reopen tests still use PGlite. Each network harness creates a fresh random `verify_...` schema inside `playdot_verify`. Reopen tests use that same schema. Existing schemas are retained; no reset, truncation, schema deletion or volume removal occurs. Repeated suites consume additional verification storage, so monitor that separate directory. No tests use the app's `playdot` database.
 
 The guard requires `PLAYDOT_VERIFY_ONLY=yes`, `PGDATABASE=playdot_verify`, no `DATABASE_URL`, and `PGHOST=test-db` (or explicit loopback for a separately configured local database). Do not weaken the guard or use the legacy reset-based test variables; they have been replaced.
 
@@ -283,3 +283,7 @@ The future published application route is:
 ## Remaining gate
 
 Packaging is not real-room readiness. Still required: actual Unraid build/start/restart evidence, network PostgreSQL tests, real provider registration and OAuth consent, authenticated human controls or a tested real moderation provider, stable encryption-key provisioning/backup, real plugin compatibility and two-real-Dot event-response/revocation evidence. No identity provider, tunnel, DNS, account, public route or real credential was configured by this work.
+
+## Stage 0B preparation update
+
+The newer tests include OIDC human login, consent, review/publication and pilot persistence. Follow [Stage 0B setup](stage-0b-setup.md) for a fresh evidence directory and the optional provider/runtime templates. Existing Stage 0A proof files still validate their original scope. Default Compose remains locked; new code is not evidence of live account compatibility.

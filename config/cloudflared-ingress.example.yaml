@@ -1,0 +1,14 @@
+# Proposed ingress fragment only; merge into the operator's actual tunnel
+# configuration only after explicit approval. No tunnel ID or credentials here.
+# Auth uses the approved Unraid host-port route; replace the literal IP placeholder.
+# cloudflared does not expand this placeholder or Compose environment variables.
+# The application route still requires the actual Playdot ingress network.
+ingress:
+  - hostname: auth.playdot.bytedev.app
+    path: ^/(realms/playdot(/.*)?|resources/.*)$
+    service: http://REPLACE_WITH_UNRAID_LAN_IP:41874
+  - hostname: auth.playdot.bytedev.app
+    service: http_status:404
+  - hostname: playdot.bytedev.app
+    service: http://playdot:3000
+  - service: http_status:404

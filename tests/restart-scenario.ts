@@ -4,6 +4,7 @@ import { Playdot } from '../packages/domain/src/service.js';
 import type { Principal, Store } from '../packages/domain/src/model.js';
 import { fixtureState, fixtureIssuer, fixtureClient, localControls } from '../scripts/local-controls.js';
 import { scopes } from '../packages/contracts/src/index.js';
+import { Pilot, type PilotConfig } from '../packages/domain/src/pilot.js';
 import { MockModeration } from './mock-moderation.js';
 
 // Synthetic, fixed-clock fixtures only. This key is public test data, never a
@@ -13,9 +14,12 @@ const principal = (suffix: string, now: number): Principal => ({ issuer: fixture
 const input = (room: string, key: string) => ({ room_id: room, session_id: `session-${room}`, body: `Synthetic restart verification ${key}`, idempotency_key: key });
 const callback = { verify: async () => {}, send: async () => { throw new Error('No outbound callbacks in restart proof'); } };
 
+const pilotConfig: PilotConfig = {issuer:'https://restart.fixture.invalid',ownerClientId:'owner-client',roomId:'pilot-restart',privateRoomId:'pilot-private',topic:'Invent a friendly name and one-sentence description for a fictional garden robot. No links, personal data or external actions.',owners:[{id:'pilot-owner-a',subject:'pilot-a',connectionId:'pilot-a',mcpClientId:'mcp-a',label:'A'},{id:'pilot-owner-b',subject:'pilot-b',connectionId:'pilot-b',mcpClientId:'mcp-b',label:'B'}]};
+const humanIdentity=(subject:string,now:number)=>({issuer:pilotConfig.issuer,subject,clientId:'owner-client',expiresAt:now+600000});
+
 export async function prepareRestart(store: Store, now: number) {
   await store.transact(s => {
-    for (const value of Object.values(s)) assert.equal(value.length, 0, 'Refuse to seed nonempty state');
+    for (const value of Object.values(s)) assert.ok(Array.isArray(value) && value.length === 0, 'Refuse to seed nonempty state');
     Object.assign(s, fixtureState(now));
     for (const name of ['review', 'error']) {
       const room = structuredClone(s.rooms[0]!); room.id = name; room.session.id = `session-${name}`;
@@ -52,10 +56,16 @@ export async function prepareRestart(store: Store, now: number) {
   moderator.result = 'filter_error';
   await assert.rejects(mock.send(b, input('error', 'error')), { code: 'MODERATION_FILTER_ERROR' });
   await controls.revoke('dot-b');
+  const pilot = new Pilot(store,pilotConfig,secrets,human,()=>now); await pilot.initialize();
+  const ownerA=humanIdentity('pilot-a',now),ownerB=humanIdentity('pilot-b',now);
+  const session=await store.transact(s=>s.rooms.find(r=>r.id==='pilot-restart')!.session.id);
+  await pilot.consent(ownerA,pilot.configHash,session);await pilot.consent(ownerB,pilot.configHash,session);
+  await assert.rejects(human.send({...ownerA,clientId:'mcp-a',scopes:[...scopes]},{room_id:'pilot-restart',session_id:session,body:'Synthetic pilot restart proposal',idempotency_key:'pilot-pending'}),{code:'MODERATION_REVIEW_REQUIRED'});
+  const review=await store.transact(s=>s.moderation.at(-1)!);await pilot.decide(ownerA,review.id,review.hash,review.contextHash,'approve');await pilot.revoke(ownerB);
   await verifyRestart(store, now);
 }
 
-export async function verifyRestart(store: Store, now: number) {
+export async function verifyRestart(store: Store, now: number, includePilot = true) {
   let deliveries = 0;
   const service = new Playdot(store, { ...callback, send: async () => { deliveries++; return 204; } }, secrets, () => now);
   const a = principal('a', now), b = principal('b', now), c = principal('c', now);
@@ -72,6 +82,14 @@ export async function verifyRestart(store: Store, now: number) {
   const before = await store.transact(s => s.messages[0]!.id);
   assert.equal((await service.send(a, input('shared', 'accepted'))).id, before);
   assert.equal(await service.dispatchOne(), false); assert.equal(deliveries, 0);
+  if (includePilot) {
+  const pilot=new Pilot(store,pilotConfig,secrets,service,()=>now);await pilot.initialize();
+  assert.equal((await pilot.dashboard(humanIdentity('pilot-a',now))).consents,2);
+  await assert.rejects(service.read({...humanIdentity('pilot-b',now),clientId:'mcp-b',scopes:[...scopes]},{room_id:'pilot-restart'}),{code:'CONNECTION_NOT_AUTHORIZED'});
+  const review=await store.transact(s=>s.moderation.find(d=>d.key==='pilot-pending')!);
+  assert.equal(review.outcome,'approved');assert.ok(review.encryptedInput);assert.equal(review.reviewerOwnerId,'pilot-owner-a');
+  await assert.rejects(pilot.publish(humanIdentity('pilot-a',now),review.id),{code:'MODERATION_APPROVAL_STALE'});
+  }
   await store.transact(s => {
     assert.equal(s.messages.length, 1); assert.equal(s.idempotency.length, 1);
     assert.equal(s.messages[0]!.moderation.source, 'human');

@@ -15,14 +15,15 @@ try {
     const { config, schema } = await isolatedConfig();
     const now = Date.now(); const store = await postgresStore(config);
     try { await prepareRestart(store, now); } finally { await store.close(); }
-    await writeFile(file, JSON.stringify({ schema, now }), { mode: 0o600 });
+    await writeFile(file, JSON.stringify({ schema, now, version: 2 }), { mode: 0o600 });
     console.log('PREPARED synthetic restart proof. Restart test-db normally, then run verify.');
   } else {
     const evidence = JSON.parse(await readFile(file, 'utf8'));
     if (!Number.isFinite(evidence.now) || typeof evidence.schema !== 'string') throw new Error('Incomplete evidence');
     const { config } = await isolatedConfig(evidence.schema);
     const store = await postgresStore(config);
-    try { await verifyRestart(store, evidence.now); } finally { await store.close(); }
+    try { await verifyRestart(store, evidence.now, evidence.version === 2); } finally { await store.close(); }
+    console.log(evidence.version === 2 ? 'Stage 0B pilot persistence included.' : 'Legacy Stage 0A proof only; prepare a fresh evidence directory for Stage 0B.');
     console.log('PASS: persisted permissions, revocation, suspension, encrypted review, approval/rejection, duplicate safety, pause and zero unapproved delivery. SYNTHETIC fixed-clock fixtures; not real human authentication.');
   }
 } catch { console.error('Restart proof FAILED. Check isolated verification DB, evidence permissions, existing/incomplete proof and test assertions; no reset performed.'); process.exitCode = 1; }

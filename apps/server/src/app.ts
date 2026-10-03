@@ -1,3 +1,5 @@
+import { registerOwner, type OwnerLogin } from './owner.js';
+import type { Pilot } from '../../../packages/domain/src/pilot.js';
 import Fastify from 'fastify';
 import { z, ZodError } from 'zod';
 import { PROTOCOL, empty, eventDefinition, scopes, toolDefinitions } from '../../../packages/contracts/src/index.js';
@@ -7,17 +9,18 @@ import type { Authenticate } from './auth.js';
 
 const rpc = z.strictObject({ jsonrpc: z.literal('2.0'), id: z.union([z.string().max(128), z.number()]).optional(), method: z.string().max(128), params: z.unknown().optional() });
 const call = z.strictObject({ name: z.string(), arguments: z.unknown().optional() });
-export function buildApp(options: { service: Playdot; authenticate: Authenticate; resource: string; issuer: string; mode?: 'locked' | 'oidc'; ready?: () => Promise<void> }) {
+export function buildApp(options: { service: Playdot; authenticate: Authenticate; resource: string; issuer: string; mode?: 'locked' | 'oidc'; ready?: () => Promise<void>; owner?: { pilot: Pilot; login: OwnerLogin; origin: string; now?: () => number } }) {
   const app = Fastify({ logger: false, bodyLimit: 32 * 1024, trustProxy: false });
   const metadata = `${new URL(options.resource).origin}/.well-known/oauth-protected-resource`;
   app.addHook('onRequest', async (req, reply) => {
     reply.header('Cache-Control', 'no-store');
-    // No browser UI in this spike; disallow browser-origin requests entirely.
-    if (req.headers.origin) return reply.code(403).send({ code: 'ORIGIN_NOT_ALLOWED' });
+    // Browser requests are restricted to same-origin human control routes.
+    if (req.headers.origin && !(options.owner && req.url.startsWith('/owner') && req.headers.origin === options.owner.origin)) return reply.code(403).send({ code: 'ORIGIN_NOT_ALLOWED' });
   });
-  app.get('/health', async () => ({ status: 'ok', stage: '0A', real_dot_verified: false, ...(options.mode ? { mode: options.mode, real_rooms_enabled: options.mode === 'oidc' } : {}) }));
+  if (options.owner) registerOwner(app, options.owner);
+  app.get('/health', async () => ({ status: 'ok', stage: options.owner ? '0B-prepared' : '0A', real_dot_verified: false, ...(options.mode ? { mode: options.mode, real_rooms_enabled: options.mode === 'oidc' } : {}) }));
   app.get('/ready', async (_req, reply) => {
-    try { await options.ready?.(); return { status: 'ready', stage: '0A' }; }
+    try { await options.ready?.(); return { status: 'ready', stage: options.owner ? '0B-prepared' : '0A' }; }
     catch { return reply.code(503).send({ status: 'not_ready' }); }
   });
   app.get('/.well-known/oauth-protected-resource', async () => ({ resource: options.resource, authorization_servers: [options.issuer], scopes_supported: scopes, bearer_methods_supported: ['header'] }));
@@ -42,7 +45,7 @@ export function buildApp(options: { service: Playdot; authenticate: Authenticate
           result = { resultType: 'complete', supportedVersions: [PROTOCOL], capabilities: { tools: {}, events: {} } }; break;
         case 'initialize': {
           const params = z.object({ protocolVersion: z.literal(PROTOCOL) }).parse(message.params);
-          result = { protocolVersion: params.protocolVersion, capabilities: { tools: {}, events: {} }, serverInfo: { name: 'playdot-stage-0a', version: '0.0.1' } }; break;
+          result = { protocolVersion: params.protocolVersion, capabilities: { tools: {}, events: {} }, serverInfo: { name: options.owner ? 'playdot-stage-0b' : 'playdot-stage-0a', version: '0.0.1' } }; break;
         }
         case 'ping': result = {}; break;
         case 'tools/list':

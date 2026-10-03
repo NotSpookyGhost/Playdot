@@ -17,7 +17,7 @@ export class Playdot {
     return message.moderation?.approved === true && (message.moderation.source === 'human' || (this.moderator.source === 'mock' && message.moderation.source === 'mock'));
   }
 
-  private async moderate(s: State, c: Connection, room: Room, input: SendInput, payloadHash: string): Promise<Message['moderation']> {
+  private async moderate(s: State, c: Connection, room: Room, input: SendInput, payloadHash: string, principal: Principal): Promise<Message['moderation']> {
     const contextHash = moderationContext(s, room.id);
     let decision = s.moderation.find(x => x.connectionId === c.id && x.key === input.idempotency_key);
     if (decision && decision.hash !== payloadHash) throw new Fault('IDEMPOTENCY_CONFLICT', 409);
@@ -28,6 +28,7 @@ export class Playdot {
       const outcome = await evaluateModeration(this.moderator, input);
       decision = { id: randomUUID(), connectionId: c.id, roomId: room.id, key: input.idempotency_key, hash: payloadHash, contextHash, policyVersion: MODERATION_POLICY, source: this.moderator.source, outcome, createdAt: this.now(), expiresAt: this.now() + REVIEW_TTL_MS,
         ...(outcome === 'human_review' ? { encryptedInput: this.secrets.seal(JSON.stringify(input)) } : {}) };
+      if (room.stage0b) { decision.reviewerOwnerId = c.ownerId; decision.submittedPrincipal = { ...principal, scopes: [...principal.scopes] }; }
       s.moderation.push(decision);
       s.audit.push({ action: `moderation.${decision.source}.${outcome}`, target: decision.id, at: this.now() });
       if (outcome === 'block') {
@@ -40,7 +41,7 @@ export class Playdot {
     if (decision.contextHash !== contextHash || decision.policyVersion !== MODERATION_POLICY || decision.expiresAt <= this.now()) throw new Fault('MODERATION_APPROVAL_STALE', 409, details);
     if (decision.outcome === 'approved') {
       const reviewer = s.memberships.find(m => m.ownerId === decision.reviewedBy && m.roomId === room.id && m.active && m.role === 'member');
-      if (decision.reviewedBy !== room.ownerId || !reviewer) throw new Fault('MODERATION_APPROVAL_STALE', 409, details);
+      if (decision.reviewedBy !== (decision.reviewerOwnerId ?? room.ownerId) || !reviewer) throw new Fault('MODERATION_APPROVAL_STALE', 409, details);
       return { approved: true, decisionId: decision.id, source: 'human', policyVersion: MODERATION_POLICY };
     }
     if (decision.outcome === 'allow' && decision.source === 'mock' && this.moderator.source === 'mock') return { approved: true, decisionId: decision.id, source: 'mock', policyVersion: MODERATION_POLICY };
@@ -72,7 +73,7 @@ export class Playdot {
     return { c, room, member };
   }
   private active(s: State, room: Room) {
-    if (room.session.expiresAt <= this.now()) {
+    if (room.session.state === 'active' && room.session.expiresAt <= this.now()) {
       room.session.state = 'paused'; room.session.reason = 'TIME_LIMIT';
       this.cancelRoom(s, room.id);
     }
@@ -86,7 +87,7 @@ export class Playdot {
   room(p: Principal, input: unknown) {
     const a = roomInput.parse(input);
     return this.run(s => { const { room, member } = this.access(s, p, a.room_id, 'room:read');
-      if (room.session.expiresAt <= this.now()) { room.session.state = 'paused'; room.session.reason = 'TIME_LIMIT'; this.cancelRoom(s, room.id); }
+      if (room.session.state === 'active' && room.session.expiresAt <= this.now()) { room.session.state = 'paused'; room.session.reason = 'TIME_LIMIT'; this.cancelRoom(s, room.id); }
       return { room_id: room.id, brief: room.brief, history_from_seq: member.historyFrom, session: room.session };
     });
   }
@@ -123,7 +124,7 @@ export class Playdot {
       if (cause && session.claims.includes(claim)) throw new Fault('ALREADY_RESPONDED', 409);
       const depth = cause ? cause.depth + 1 : 0;
       if (depth >= session.chainLimit) throw new Fault('CHAIN_LIMIT', 429);
-      const moderation = await this.moderate(s, c, room, a, payloadHash);
+      const moderation = await this.moderate(s, c, room, a, payloadHash, p);
       // Filter evaluation is bounded but asynchronous: recheck token/session time.
       this.access(s, p, a.room_id, 'message:write'); this.active(s, room);
       const message = { id: randomUUID(), room_id: room.id, room_seq: ++room.seq, body: a.body,
@@ -168,6 +169,7 @@ export class Playdot {
         secret: this.secrets.seal(a.delivery.secret), expiresAt, tokenExpiresAt: p.expiresAt, active: true };
       if (previous && this.secrets.open(previous.secret) !== a.delivery.secret) { sub.oldSecret = previous.secret; sub.rotationUntil = this.now() + 60000; }
       s.subscriptions = s.subscriptions.filter(x => x.id !== id); s.subscriptions.push(sub);
+      s.audit.push({ action: previous ? 'subscription.refreshed' : 'subscription.created', target: id, at: this.now() });
       return { id, refreshBefore: new Date(expiresAt).toISOString(), cursor: null, truncated: false };
     });
   }
@@ -195,6 +197,7 @@ export class Playdot {
     // Minimal serial worker: hold the aggregate lock through bounded HTTP I/O.
     // Revocation and dispatch have one ordering; no cached grants escape the lock.
     return this.store.transact(async s => {
+      if (s.pilot?.deliveryHold) return false;
       const item = s.outbox.find(x => x.state === 'queued' && x.nextAt <= this.now());
       if (!item) return false;
       const sub = s.subscriptions.find(x => x.id === item.subscriptionId);
@@ -210,6 +213,7 @@ export class Playdot {
       if (status >= 200 && status < 300) item.state = 'received';
       else if (status === 410 || status === 413 || (status >= 400 && status < 500 && status !== 429) || item.attempts >= 5) item.state = 'failed';
       else item.nextAt = this.now() + Math.min(60000, 1000 * 2 ** item.attempts);
+      s.audit.push({ action: 'delivery.' + item.state, target: sub.id, at: this.now() });
       return true;
     });
   }

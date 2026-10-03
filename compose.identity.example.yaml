@@ -1,0 +1,89 @@
+# Explicit future setup only. Requires separate approval; not auto-loaded.
+name: playdot-identity
+services:
+  identity-db:
+    image: playdot-postgres:local
+    build: {context: ., dockerfile: infra/postgres/Dockerfile}
+    user: "999:999"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+      - /var/run/postgresql:rw,noexec,nosuid,size=16m,uid=999,gid=999,mode=0770
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: keycloak
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=trust
+      PGDATA: /var/lib/postgresql/data/pgdata
+    secrets:
+      - {source: identity_postgres_password, target: postgres_password}
+      - {source: identity_app_password, target: app_db_password}
+    volumes:
+      - type: bind
+        source: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/identity-postgres
+        target: /var/lib/postgresql/data
+        bind: {create_host_path: false}
+    networks: [identity-db]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d keycloak"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    stop_grace_period: 60s
+    logging: &logging
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  keycloak:
+    image: playdot-keycloak:local
+    build: {context: ., dockerfile: infra/keycloak/Dockerfile}
+    user: "1000:0"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,size=128m,uid=1000,gid=0,mode=0700
+      - /opt/keycloak/data:rw,nosuid,size=128m,uid=1000,gid=0,mode=0700
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://identity-db:5432/keycloak
+      KC_DB_USERNAME: playdot
+      KC_HEALTH_ENABLED: "true"
+      KC_FEATURES: resource-indicators
+      KC_HOSTNAME: https://auth.playdot.bytedev.app
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_BOOTSTRAP_ADMIN_USERNAME: playdot-bootstrap
+    secrets: [identity_app_password, identity_admin_password]
+    volumes:
+      - type: bind
+        source: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/config/keycloak-realm.json
+        target: /opt/keycloak/data/import/playdot-realm.json
+        read_only: true
+        bind: {create_host_path: false}
+    # Bind only the operator-selected Unraid LAN address, never all interfaces.
+    ports:
+      - "${KEYCLOAK_BIND_IP:?Set KEYCLOAK_BIND_IP to the Unraid LAN IP}:${KEYCLOAK_HOST_PORT:-41874}:8080/tcp"
+    networks: [identity-db, identity-ingress]
+    depends_on: {identity-db: {condition: service_healthy}}
+    healthcheck:
+      test: [CMD, /bin/bash, -c, "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3; read -r response <&3; [[ $$response == *' 200 '* ]]"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    restart: unless-stopped
+    stop_grace_period: 60s
+    logging: *logging
+networks:
+  identity-db: {internal: true}
+  identity-ingress: {}
+secrets:
+  identity_postgres_password:
+    file: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/secrets/identity_postgres_password
+  identity_app_password:
+    file: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/secrets/identity_app_password
+  identity_admin_password:
+    file: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/secrets/identity_admin_password

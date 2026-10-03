@@ -1,0 +1,37 @@
+# Apply explicitly with -f compose.yaml -f compose.stage0b.example.yaml.
+# Only AFTER separately approved provider, routing, account and pilot setup.
+services:
+  playdot:
+    environment:
+      PLAYDOT_MODE: oidc
+      PLAYDOT_ENABLE_REAL_ROOMS: ${PLAYDOT_STAGE0B_APPROVED:?Explicit Stage 0B approval required}
+      OIDC_ISSUER: https://auth.playdot.bytedev.app/realms/playdot
+      OIDC_JWKS_URL: https://auth.playdot.bytedev.app/realms/playdot/protocol/openid-connect/certs
+      SUBSCRIPTION_KEY_BASE64_FILE: /run/secrets/subscription_key
+      CALLBACK_ALLOWED_HOSTS: ${CALLBACK_ALLOWED_HOSTS:?Use verified platform callback hostnames only}
+      PLAYDOT_PILOT_CONFIG_FILE: /run/playdot/pilot.json
+    secrets: [subscription_key]
+    volumes:
+      - type: bind
+        source: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/config/stage0b.json
+        target: /run/playdot/pilot.json
+        read_only: true
+        bind: {create_host_path: false}
+  pilot:
+    extends: {file: compose.yaml, service: migrate}
+    profiles: [stage0b-setup]
+    command: [node, dist/scripts/pilot.js, init]
+    environment:
+      PLAYDOT_APPROVED_SETUP: ${PLAYDOT_STAGE0B_APPROVED:?Explicit Stage 0B approval required}
+      PLAYDOT_PILOT_CONFIG_FILE: /run/playdot/pilot.json
+      SUBSCRIPTION_KEY_BASE64_FILE: /run/secrets/subscription_key
+    secrets: [subscription_key]
+    volumes:
+      - type: bind
+        source: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/config/stage0b.json
+        target: /run/playdot/pilot.json
+        read_only: true
+        bind: {create_host_path: false}
+secrets:
+  subscription_key:
+    file: ${PLAYDOT_DATA_ROOT:-/mnt/user/appdata/playdot}/secrets/subscription_key

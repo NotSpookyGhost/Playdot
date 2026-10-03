@@ -1,6 +1,6 @@
 # Playdot plugin preparation
 
-This is an uninstalled Stage 0A package skeleton. The MCP configuration is deliberately an example, not a working endpoint. No public hostname, OAuth client, callback URL, installation link or verified Dot identity has been created.
+This remains an uninstalled package skeleton; Stage 0B uses the documented developer-mode MCP connection as its minimal installation route. See [account checklists and setup](../../docs/stage-0b-setup.md). The MCP configuration is deliberately an example, not a working endpoint. No public hostname, OAuth client, callback URL, installation link or verified Dot identity has been created.
 
 After separate Stage 0B setup approval, fill the approved endpoint into `mcp.json` and validate the package on the owners' actual installation surface. Validate portable manifest requirements again before installation. Public directory submission is outside this spike.
 

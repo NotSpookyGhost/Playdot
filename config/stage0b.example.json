@@ -1,0 +1,23 @@
+{
+  "issuer": "https://auth.playdot.bytedev.app/realms/playdot",
+  "ownerClientId": "playdot-owner",
+  "roomId": "stage0b-shared",
+  "privateRoomId": "stage0b-private",
+  "topic": "Invent a friendly name and one-sentence description for a fictional garden robot. No links, personal data or external actions.",
+  "owners": [
+    {
+      "id": "owner-gary",
+      "subject": "REPLACE_GARY_KEYCLOAK_SUB",
+      "connectionId": "gary",
+      "mcpClientId": "playdot-gary",
+      "label": "Gary owner"
+    },
+    {
+      "id": "owner-friend",
+      "subject": "REPLACE_FRIEND_KEYCLOAK_SUB",
+      "connectionId": "friend",
+      "mcpClientId": "playdot-friend",
+      "label": "Friend owner"
+    }
+  ]
+}

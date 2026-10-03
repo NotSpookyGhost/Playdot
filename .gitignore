@@ -9,3 +9,8 @@ coverage/
 secrets/
 *.pem
 *.key
+
+# Operator-specific identity bindings and provider realm; templates only in git.
+config/stage0b.json
+config/keycloak-realm.json
+.stage0b.env

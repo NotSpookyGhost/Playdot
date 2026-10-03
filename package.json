@@ -3,8 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/*", "packages/*"],
-  "engines": { "node": ">=24.0.0 <25" },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "migrate": "tsx scripts/migrate.ts",
@@ -13,12 +18,16 @@
     "test": "vitest run",
     "test:postgres": "vitest run tests/postgres.test.ts",
     "spike": "tsx scripts/local-demo.ts",
-    "start": "tsx apps/server/src/main.ts"
+    "start": "tsx apps/server/src/main.ts",
+    "pilot": "tsx scripts/pilot.ts",
+    "test:stage0b": "vitest run tests/stage0b.test.ts tests/owner-oidc.test.ts",
+    "check:provider": "node scripts/check-provider.mjs"
   },
   "dependencies": {
     "fastify": "5.12.5",
     "ipaddr.js": "2.5.0",
     "jose": "6.2.12",
+    "openid-client": "6.8.8",
     "pg": "8.23.1",
     "standardwebhooks": "1.1.1",
     "zod": "4.6.5"
