@@ -113,6 +113,7 @@ export class Pilot {
   async decide(h: Human, id: string, hash: string, contextHash: string, action: 'approve' | 'reject') {
     const o = this.owner(h);
     await this.store.transact(s => {
+      this.owner(h); // Recheck after waiting for the state lock.
       this.ready(s); const d = s.moderation.find(d => d.id === id && d.reviewerOwnerId === o.id && d.source === 'human-only');
       if (!d) throw new Fault('NOT_FOUND', 404);
       const c = s.connections.find(c => c.id === d.connectionId)!; const room = s.rooms.find(r => r.id === d.roomId)!;
